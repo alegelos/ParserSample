@@ -1,0 +1,15 @@
+{
+  "originHash" : "8e296d2045d593a909b29c94ed76c2fc21f6513445a628ad8775bf736d0745ab",
+  "pins" : [
+    {
+      "identity" : "ioscleannetwork",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/alegelos/iOSCleanNetwork",
+      "state" : {
+        "revision" : "d8d27c1639276d88300d9660a01ff378ff650dc5",
+        "version" : "1.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}
