@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A9D439452F7554CC00DAB4C9 /* CheckoutFlow in Frameworks */ = {isa = PBXBuildFile; productRef = A9D439442F7554CC00DAB4C9 /* CheckoutFlow */; };
+		A9D43A2F2F759C3600DAB4C9 /* CheckoutFlow in Frameworks */ = {isa = PBXBuildFile; productRef = A9D43A2E2F759C3600DAB4C9 /* CheckoutFlow */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -18,6 +18,7 @@
 		A9D438DA2F7543A400DAB4C9 /* SampleApplication.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SampleApplication.xcodeproj; sourceTree = "<group>"; };
 		A9D439052F754D0700DAB4C9 /* ParserSample-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ParserSample-Info.plist"; sourceTree = "<group>"; };
 		A9D4391B2F75544600DAB4C9 /* SampleApplication.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SampleApplication.xcodeproj; sourceTree = "<group>"; };
+		A9D439FF2F759C1500DAB4C9 /* SampleApplication.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SampleApplication.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -46,7 +47,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A9D439452F7554CC00DAB4C9 /* CheckoutFlow in Frameworks */,
+				A9D43A2F2F759C3600DAB4C9 /* CheckoutFlow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,6 +106,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A9D43A002F759C1500DAB4C9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -125,7 +133,7 @@
 			);
 			name = ParserSample;
 			packageProductDependencies = (
-				A9D439442F7554CC00DAB4C9 /* CheckoutFlow */,
+				A9D43A2E2F759C3600DAB4C9 /* CheckoutFlow */,
 			);
 			productName = ParserSample;
 			productReference = A98E6DD62F6AD075000FE890 /* ParserSample.app */;
@@ -156,7 +164,7 @@
 			mainGroup = A98E6DCD2F6AD075000FE890;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				A9D439432F7554CC00DAB4C9 /* XCRemoteSwiftPackageReference "ParserSample" */,
+				A9D43A2D2F759C3600DAB4C9 /* XCRemoteSwiftPackageReference "ParserSample" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A98E6DD72F6AD075000FE890 /* Products */;
@@ -173,6 +181,10 @@
 				{
 					ProductGroup = A9D4391C2F75544600DAB4C9 /* Products */;
 					ProjectRef = A9D4391B2F75544600DAB4C9 /* SampleApplication.xcodeproj */;
+				},
+				{
+					ProductGroup = A9D43A002F759C1500DAB4C9 /* Products */;
+					ProjectRef = A9D439FF2F759C1500DAB4C9 /* SampleApplication.xcodeproj */;
 				},
 				{
 					ProductGroup = A9D438212F74BFD900DAB4C9 /* Products */;
@@ -441,20 +453,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		A9D439432F7554CC00DAB4C9 /* XCRemoteSwiftPackageReference "ParserSample" */ = {
+		A9D43A2D2F759C3600DAB4C9 /* XCRemoteSwiftPackageReference "ParserSample" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/alegelos/ParserSample";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.1;
+				minimumVersion = 1.0.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A9D439442F7554CC00DAB4C9 /* CheckoutFlow */ = {
+		A9D43A2E2F759C3600DAB4C9 /* CheckoutFlow */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A9D439432F7554CC00DAB4C9 /* XCRemoteSwiftPackageReference "ParserSample" */;
+			package = A9D43A2D2F759C3600DAB4C9 /* XCRemoteSwiftPackageReference "ParserSample" */;
 			productName = CheckoutFlow;
 		};
 /* End XCSwiftPackageProductDependency section */
