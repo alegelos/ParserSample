@@ -1,11 +1,18 @@
 import Foundation
 import iOSCleanNetwork
 
-public final class CheckoutFlowModule {
+public enum CheckoutFlowError: LocalizedError, Equatable {
+    case moduleNotInitialized
 
-    public enum Errors: Error {
-        case notInitialized
+    public var errorDescription: String? {
+        switch self {
+        case .moduleNotInitialized:
+            return "CheckoutFlowModule.create(...) must be called before presenting CheckoutFlowView."
+        }
     }
+}
+
+public final class CheckoutFlowModule {
 
     nonisolated(unsafe) private static var sharedInstance: CheckoutFlowModule?
     private static let sharedQueue = DispatchQueue(
@@ -13,18 +20,19 @@ public final class CheckoutFlowModule {
         attributes: .concurrent
     )
 
-    public static var shared: CheckoutFlowModule {
+    static var shared: CheckoutFlowModule {
         get throws {
             try sharedQueue.sync {
                 guard let sharedInstance else {
-                    throw Errors.notInitialized
+                    throw CheckoutFlowError.moduleNotInitialized
                 }
+
                 return sharedInstance
             }
         }
     }
 
-    let paymentFlowProvider: any PaymentFlowProviderProtocol
+    private let paymentFlowProvider: any PaymentFlowProviderProtocol
 
     private init(paymentFlowProvider: any PaymentFlowProviderProtocol) {
         self.paymentFlowProvider = paymentFlowProvider
@@ -42,11 +50,7 @@ public final class CheckoutFlowModule {
                 session: session
             )
 
-            let module = CheckoutFlowModule(
-                paymentFlowProvider: checkoutAPIProvider
-            )
-
-            sharedInstance = module
+            sharedInstance = CheckoutFlowModule(paymentFlowProvider: checkoutAPIProvider)
         }
     }
 
@@ -57,15 +61,25 @@ public final class CheckoutFlowModule {
     }
 }
 
-// MARK: - PaymentFlowProviderProtocol
+// MARK: - Factory
 
-extension CheckoutFlowModule: PaymentFlowProviderProtocol {
+extension CheckoutFlowModule {
 
-    public func tokenizeCard(_ cardDetails: CardDetails) async throws -> PaymentToken {
-        try await paymentFlowProvider.tokenizeCard(cardDetails)
-    }
-
-    public func createPayment(_ cardPayment: CardPayment) async throws -> ThreeDSPaymentSession {
-        try await paymentFlowProvider.createPayment(cardPayment)
+    @MainActor
+    func makeCheckoutFlowViewModel(
+        paymentConfiguration: CheckoutFlowPaymentConfiguration,
+        mapSubmitErrorMessage: ((Error) -> String)? = nil,
+        onComplete: @escaping (CheckoutFlowCompletionResult) -> Void
+    ) -> CheckoutFlowViewModel {
+        CheckoutFlowViewModel(
+            payButtonTitle: paymentConfiguration.payButtonTitle,
+            paymentFlowProvider: paymentFlowProvider,
+            amountInMinorUnits: paymentConfiguration.amountInMinorUnits,
+            currencyCode: paymentConfiguration.currencyCode,
+            successURL: paymentConfiguration.successURL,
+            failureURL: paymentConfiguration.failureURL,
+            mapSubmitErrorMessage: mapSubmitErrorMessage,
+            onComplete: onComplete
+        )
     }
 }

@@ -12,7 +12,8 @@
 
 /* Begin PBXFileReference section */
 		A98E6DD62F6AD075000FE890 /* ParserSample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParserSample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A9D437222F74B86900DAB4C9 /* SampleApplication.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SampleApplication.xcodeproj; sourceTree = "<group>"; };
+		B10000000000000000000001 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = SampleApplication/Configuration/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		B10000000000000000000002 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = SampleApplication/Configuration/Release.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -47,13 +48,6 @@
 			isa = PBXGroup;
 			children = (
 				A98E6DD62F6AD075000FE890 /* ParserSample.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		A9D437232F74B86900DAB4C9 /* Products */ = {
-			isa = PBXGroup;
-			children = (
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -114,12 +108,6 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A98E6DD72F6AD075000FE890 /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = A9D437232F74B86900DAB4C9 /* Products */;
-					ProjectRef = A9D437222F74B86900DAB4C9 /* SampleApplication.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				A98E6DD52F6AD075000FE890 /* ParserSample */,
@@ -264,6 +252,7 @@
 		};
 		A98E6DF82F6AD077000FE890 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B10000000000000000000001 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -306,6 +295,7 @@
 		};
 		A98E6DF92F6AD077000FE890 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B10000000000000000000002 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
