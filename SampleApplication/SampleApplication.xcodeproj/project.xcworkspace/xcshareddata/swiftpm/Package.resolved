@@ -1,5 +1,5 @@
 {
-  "originHash" : "a642f5b0dca01d2cf9ff48c8106891d583974414da912b087f597a54034bd88b",
+  "originHash" : "9e256cee105b35f047d9aa5ccac2daada45fa350e5ffc12a7902b4029c093998",
   "pins" : [
     {
       "identity" : "ioscleannetwork",
@@ -8,15 +8,6 @@
       "state" : {
         "revision" : "d8d27c1639276d88300d9660a01ff378ff650dc5",
         "version" : "1.0.2"
-      }
-    },
-    {
-      "identity" : "parsersample",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/alegelos/ParserSample",
-      "state" : {
-        "revision" : "ae89743faa55e1172f344d204954f8c29938c461",
-        "version" : "1.0.1"
       }
     }
   ],

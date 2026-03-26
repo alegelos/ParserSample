@@ -1,5 +1,4 @@
 import SwiftUI
-import CheckoutFlow
 
 @main
 struct SampleApplicationApp: App {

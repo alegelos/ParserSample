@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CheckoutBaseURL</key>
+	<string>$(CHECKOUT_BASE_URL)</string>
+	<key>CheckoutPublicKey</key>
+	<string>$(CHECKOUT_PUBLIC_KEY)</string>
+	<key>CheckoutSecretKey</key>
+	<string>$(CHECKOUT_SECRET_KEY)</string>
+</dict>
+</plist>
