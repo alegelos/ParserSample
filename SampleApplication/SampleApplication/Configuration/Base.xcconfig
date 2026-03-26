@@ -1,4 +1,4 @@
-CHECKOUT_BASE_URL = https://api.sandbox.checkout.com
+CHECKOUT_BASE_URL = https:/$()/api.sandbox.checkout.com
 CHECKOUT_PUBLIC_KEY =
 CHECKOUT_SECRET_KEY =
 

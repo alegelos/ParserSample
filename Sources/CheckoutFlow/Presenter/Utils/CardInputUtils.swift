@@ -4,7 +4,7 @@ enum CardInputUtils {
     
     static func formatCardExpiryDateInput(from rawValue: String) -> String {
         let onlyDigits = rawValue.filter(\.isNumber)
-        let limitedDigits = String(onlyDigits.prefix(6)) // MMYYYY
+        let limitedDigits = String(onlyDigits.prefix(4))
 
         guard limitedDigits.count > 2 else {
             return limitedDigits

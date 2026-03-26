@@ -126,6 +126,7 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
     
     func updateUIView(_ webView: WKWebView, context: Context) { }
     
+    @MainActor
     final class Coordinator: NSObject, WKNavigationDelegate {
         
         private let didStartLoading: () -> Void
@@ -174,19 +175,17 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
         ) {
             didFailLoading(error)
         }
-        
+
         func webView(
             _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
+            decidePolicyFor navigationAction: WKNavigationAction
+        ) async -> WKNavigationActionPolicy {
             guard let requestURL = navigationAction.request.url else {
-                decisionHandler(.cancel)
-                return
+                return .cancel
             }
             
             let shouldAllowNavigation = decideNavigationPolicy(requestURL)
-            decisionHandler(shouldAllowNavigation ? .allow : .cancel)
+            return shouldAllowNavigation ? .allow : .cancel
         }
     }
 }
