@@ -1,9 +1,9 @@
 import SwiftUI
 import Observation
 
-struct CheckoutPaymentResultView: View {
+struct PaymentResultView: View {
     
-    @Bindable var viewModel: CheckoutPaymentResultViewModel
+    @Bindable var viewModel: PaymentResultViewModel
     
     var body: some View {
         let viewState = viewModel.viewState
@@ -11,9 +11,9 @@ struct CheckoutPaymentResultView: View {
         VStack(spacing: 24) {
             Spacer()
             
-            Image(systemName: statusImageName(for: viewState.status))
+            Image(systemName: viewState.statusImageName)
                 .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(statusColor(for: viewState.status))
+                .foregroundStyle(statusColor(for: viewState.appearance))
             
             VStack(spacing: 8) {
                 Text(viewState.titleText)
@@ -40,7 +40,7 @@ struct CheckoutPaymentResultView: View {
                 .foregroundColor(.white)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(primaryButtonColor(for: viewState.status))
+                        .fill(primaryButtonColor(for: viewState.appearance))
                 )
                 
                 if let secondaryButtonTitle = viewState.secondaryButtonTitle {
@@ -71,19 +71,8 @@ struct CheckoutPaymentResultView: View {
         .navigationBarBackButtonHidden(true)
     }
     
-    private func statusImageName(for status: PaymentOutcome) -> String {
-        switch status {
-        case .success:
-            return "checkmark.circle.fill"
-        case .failure:
-            return "xmark.circle.fill"
-        case .cancelled:
-            return "minus.circle.fill"
-        }
-    }
-    
-    private func statusColor(for status: PaymentOutcome) -> Color {
-        switch status {
+    private func statusColor(for appearance: PaymentResultViewState.CheckoutPaymentResultAppearance) -> Color {
+        switch appearance {
         case .success:
             return .green
         case .failure:
@@ -93,32 +82,12 @@ struct CheckoutPaymentResultView: View {
         }
     }
     
-    private func primaryButtonColor(for status: PaymentOutcome) -> Color {
-        switch status {
+    private func primaryButtonColor(for appearance: PaymentResultViewState.CheckoutPaymentResultAppearance) -> Color {
+        switch appearance {
         case .success:
             return .green
-        case .failure:
-            return .blue
-        case .cancelled:
+        case .failure, .cancelled:
             return .blue
         }
     }
-}
-
-#Preview("Success") {
-    CheckoutPaymentResultView(
-        viewModel: .success()
-    )
-}
-
-#Preview("Failure") {
-    CheckoutPaymentResultView(
-        viewModel: .failure()
-    )
-}
-
-#Preview("Cancelled") {
-    CheckoutPaymentResultView(
-        viewModel: .cancelled()
-    )
 }

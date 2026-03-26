@@ -23,8 +23,8 @@ struct ExpiryDateInputView: View {
             TextField(placeholderText, text: $expiryDateText)
                 .keyboardType(.numberPad)
                 .textContentType(.none)
-                .onChange(of: expiryDateText) { newValue in
-                    expiryDateText = formatExpiryDate(from: newValue)
+                .onChange(of: expiryDateText) { _, newValue in
+                    expiryDateText = CardInputUtils.formatCardExpiryDateInput(from: newValue)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 14)
@@ -39,19 +39,6 @@ struct ExpiryDateInputView: View {
         }
     }
     
-    private func formatExpiryDate(from rawValue: String) -> String {
-        let onlyDigits = rawValue.filter(\.isNumber)
-        let limitedDigits = String(onlyDigits.prefix(4))
-        
-        guard limitedDigits.count > 2 else {
-            return limitedDigits
-        }
-        
-        let monthText = String(limitedDigits.prefix(2))
-        let yearText = String(limitedDigits.dropFirst(2))
-        
-        return "\(monthText)/\(yearText)"
-    }
 }
 
 #if DEBUG

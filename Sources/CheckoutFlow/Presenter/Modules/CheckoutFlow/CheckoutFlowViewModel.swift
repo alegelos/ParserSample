@@ -12,14 +12,14 @@ public enum CheckoutFlowCompletionResult: Equatable, Sendable {
 final class CheckoutFlowViewModel {
     
     var currentStep: CheckoutFlowStep = .cardForm
-    var threeDSChallengeViewModel: CheckoutThreeDSChallengeViewModel?
-    var paymentResultViewModel: CheckoutPaymentResultViewModel?
+    var threeDSChallengeViewModel: ThreeDSChallengeViewModel?
+    var paymentResultViewModel: PaymentResultViewModel?
     
     var viewState: CheckoutFlowViewState {
         CheckoutFlowViewState(currentStep: currentStep)
     }
     
-    var cardFormViewModel: CheckoutCardFormViewModel!
+    var cardFormViewModel: CardFormViewModel!
     
     @ObservationIgnored
     private let paymentFlowProvider: any PaymentFlowProviderProtocol
@@ -75,8 +75,8 @@ final class CheckoutFlowViewModel {
 
 extension CheckoutFlowViewModel {
     
-    private func makeCardFormViewModel() -> CheckoutCardFormViewModel {
-        CheckoutCardFormViewModel(
+    private func makeCardFormViewModel() -> CardFormViewModel {
+        CardFormViewModel(
             payButtonTitle: payButtonTitle,
             paymentFlowProvider: paymentFlowProvider,
             onCardTokenized: { [weak self] paymentToken in
@@ -136,7 +136,7 @@ extension CheckoutFlowViewModel {
     private func showThreeDSChallenge(with challengeURL: URL) {
         paymentResultViewModel = nil
         
-        threeDSChallengeViewModel = CheckoutThreeDSChallengeViewModel(
+        threeDSChallengeViewModel = ThreeDSChallengeViewModel(
             requestURL: challengeURL,
             titleText: "3D Secure",
             showsCloseButton: true,
@@ -155,7 +155,7 @@ extension CheckoutFlowViewModel {
         currentStep = .threeDSChallenge
     }
     
-    private func resolveThreeDSNavigationAction(for url: URL) -> CheckoutThreeDSChallengeNavigationAction {
+    private func resolveThreeDSNavigationAction(for url: URL) -> ThreeDSChallengeViewModel.ThreeDSChallengeNavigationAction {
         if matchesCallbackURL(url, expectedURL: successURL) {
             return .finishSuccess
         }
@@ -181,7 +181,7 @@ extension CheckoutFlowViewModel {
     }
     
     private func handleThreeDSCompletion(
-        _ completion: CheckoutThreeDSChallengeCompletion
+        _ completion: ThreeDSChallengeViewModel.ThreeDSChallengeCompletion
     ) {
         switch completion {
         case .success:
@@ -198,8 +198,8 @@ extension CheckoutFlowViewModel {
     private func showSuccessResult() {
         threeDSChallengeViewModel = nil
         
-        paymentResultViewModel = CheckoutPaymentResultViewModel(
-            status: .success,
+        paymentResultViewModel = PaymentResultViewModel(
+            status: PaymentResultViewState.PaymentOutcome.success,
             titleText: "Payment completed",
             messageText: "Your payment was processed successfully.",
             primaryButtonTitle: "Done",
@@ -218,8 +218,8 @@ extension CheckoutFlowViewModel {
         
         let failureMessage = message ?? "We could not complete your payment. Please try again."
         
-        paymentResultViewModel = CheckoutPaymentResultViewModel(
-            status: .failure,
+        paymentResultViewModel = PaymentResultViewModel(
+            status: PaymentResultViewState.PaymentOutcome.failure,
             titleText: "Payment failed",
             messageText: failureMessage,
             primaryButtonTitle: "Try Again",
@@ -238,8 +238,8 @@ extension CheckoutFlowViewModel {
     private func showCancelledResult() {
         threeDSChallengeViewModel = nil
         
-        paymentResultViewModel = CheckoutPaymentResultViewModel(
-            status: .cancelled,
+        paymentResultViewModel = PaymentResultViewModel(
+            status: PaymentResultViewState.PaymentOutcome.cancelled,
             titleText: "Payment cancelled",
             messageText: "The checkout flow was cancelled.",
             primaryButtonTitle: "Close",

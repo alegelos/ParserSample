@@ -27,8 +27,8 @@ struct CardNumberInputView: View {
                 TextField(placeholderText, text: $cardNumberText)
                     .keyboardType(.numberPad)
                     .textContentType(.creditCardNumber)
-                    .onChange(of: cardNumberText) { newValue in
-                        cardNumberText = formatCardNumber(from: newValue)
+                    .onChange(of: cardNumberText) { _, newValue in
+                        cardNumberText = CardInputUtils.formatCardNumberInput(from: newValue)
                     }
                 
                 if schemeName != nil {
@@ -48,21 +48,6 @@ struct CardNumberInputView: View {
         }
     }
     
-    private func formatCardNumber(from rawValue: String) -> String {
-        let onlyDigits = rawValue.filter(\.isNumber)
-        let limitedDigits = String(onlyDigits.prefix(19))
-        
-        var groupedCharacters: [String] = []
-        var currentIndex = limitedDigits.startIndex
-        
-        while currentIndex < limitedDigits.endIndex {
-            let nextIndex = limitedDigits.index(currentIndex, offsetBy: 4, limitedBy: limitedDigits.endIndex) ?? limitedDigits.endIndex
-            groupedCharacters.append(String(limitedDigits[currentIndex..<nextIndex]))
-            currentIndex = nextIndex
-        }
-        
-        return groupedCharacters.joined(separator: " ")
-    }
 }
 
 #if DEBUG

@@ -3,7 +3,7 @@ import Observation
 
 @MainActor
 @Observable
-final class CheckoutCardFormViewModel {
+final class CardFormViewModel {
     
     var cardNumberText: String = "" {
         didSet {
@@ -41,8 +41,8 @@ final class CheckoutCardFormViewModel {
             && !isLoading
     }
     
-    var viewState: CheckoutCardFormViewState {
-        CheckoutCardFormViewState(
+    var viewState: CardFormViewState {
+        CardFormViewState(
             cardNumberText: cardNumberText,
             expiryDateText: expiryDateText,
             cvvText: cvvText,

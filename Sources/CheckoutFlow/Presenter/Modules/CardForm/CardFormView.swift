@@ -1,9 +1,9 @@
 import SwiftUI
 import Observation
 
-struct CheckoutCardFormView: View {
+struct CardFormView: View {
     
-    @Bindable var viewModel: CheckoutCardFormViewModel
+    @Bindable var viewModel: CardFormViewModel
     
     var body: some View {
         ScrollView {
@@ -65,8 +65,8 @@ private struct PreviewPaymentFlowProvider: PaymentFlowProviderProtocol {
 }
 
 #Preview {
-    CheckoutCardFormView(
-        viewModel: CheckoutCardFormViewModel(
+    CardFormView(
+        viewModel: CardFormViewModel(
             payButtonTitle: "Pay",
             paymentFlowProvider: PreviewPaymentFlowProvider(),
             onCardTokenized: { _ in }

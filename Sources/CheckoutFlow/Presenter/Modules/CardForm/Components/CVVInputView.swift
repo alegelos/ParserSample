@@ -26,8 +26,8 @@ struct CVVInputView: View {
             SecureField(placeholderText, text: $cvvText)
                 .keyboardType(.numberPad)
                 .textContentType(.creditCardSecurityCode)
-                .onChange(of: cvvText) { newValue in
-                    cvvText = sanitizeCVV(from: newValue)
+                .onChange(of: cvvText) { _, newValue in
+                    cvvText = CardInputUtils.sanitizeCardSecurityCodeInput(from: newValue, maximumLength: maximumLength)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 14)
@@ -42,10 +42,6 @@ struct CVVInputView: View {
         }
     }
     
-    private func sanitizeCVV(from rawValue: String) -> String {
-        let onlyDigits = rawValue.filter(\.isNumber)
-        return String(onlyDigits.prefix(maximumLength))
-    }
 }
 
 #if DEBUG

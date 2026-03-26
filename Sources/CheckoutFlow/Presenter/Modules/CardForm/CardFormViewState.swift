@@ -1,6 +1,6 @@
 import Foundation
 
-struct CheckoutCardFormViewState: Equatable {
+struct CardFormViewState: Equatable {
     
     let cardNumberText: String
     let expiryDateText: String

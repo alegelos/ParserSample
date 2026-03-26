@@ -2,14 +2,16 @@ import SwiftUI
 import Observation
 import WebKit
 
-struct CheckoutThreeDSChallengeView: View {
+struct ThreeDSChallengeView: View {
     
-    @Bindable var viewModel: CheckoutThreeDSChallengeViewModel
+    @Bindable var viewModel: ThreeDSChallengeViewModel
     
     var body: some View {
+        let viewState = viewModel.viewState
+        
         ZStack {
             CheckoutThreeDSChallengeWebView(
-                requestURL: viewModel.requestURL,
+                requestURL: viewState.requestURL,
                 didStartLoading: {
                     viewModel.didStartLoading()
                 },
@@ -24,56 +26,69 @@ struct CheckoutThreeDSChallengeView: View {
                 }
             )
             
-            if viewModel.isLoading {
-                VStack(spacing: 12) {
-                    ProgressView()
-                    Text("Loading authentication…")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.systemBackground).opacity(0.95))
-                )
+            if viewState.shouldShowLoadingOverlay {
+                loadingOverlayView(viewState: viewState)
             }
             
-            if let errorMessage = viewModel.errorMessage {
-                VStack {
-                    Spacer()
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Authentication Error")
-                            .font(.headline)
-                        
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(.separator).opacity(0.25), lineWidth: 1)
-                    )
-                    .padding(16)
-                }
+            if viewState.shouldShowErrorView {
+                errorView(viewState: viewState)
             }
         }
-        .navigationTitle(viewModel.titleText)
+        .navigationTitle(viewState.titleText)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if viewModel.showsCloseButton {
+            if viewState.showsCloseButton {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
+                    Button(viewState.closeButtonTitle) {
                         viewModel.didTapCloseButton()
                     }
                 }
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func loadingOverlayView(viewState: ThreeDSChallengeViewState) -> some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            
+            Text(viewState.loadingText)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground).opacity(0.95))
+        )
+    }
+    
+    @ViewBuilder
+    private func errorView(viewState: ThreeDSChallengeViewState) -> some View {
+        VStack {
+            Spacer()
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text(viewState.errorTitleText)
+                    .font(.headline)
+                
+                if let errorMessage = viewState.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color(.separator).opacity(0.25), lineWidth: 1)
+            )
+            .padding(16)
         }
     }
 }
@@ -98,6 +113,7 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let webViewConfiguration = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: webViewConfiguration)
+        
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
@@ -108,7 +124,7 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
         return webView
     }
     
-    func updateUIView(_ uiView: WKWebView, context: Context) { }
+    func updateUIView(_ webView: WKWebView, context: Context) { }
     
     final class Coordinator: NSObject, WKNavigationDelegate {
         
@@ -164,12 +180,12 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
             decidePolicyFor navigationAction: WKNavigationAction,
             decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
         ) {
-            guard let url = navigationAction.request.url else {
+            guard let requestURL = navigationAction.request.url else {
                 decisionHandler(.cancel)
                 return
             }
             
-            let shouldAllowNavigation = decideNavigationPolicy(url)
+            let shouldAllowNavigation = decideNavigationPolicy(requestURL)
             decisionHandler(shouldAllowNavigation ? .allow : .cancel)
         }
     }
@@ -177,8 +193,8 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
 
 #Preview {
     NavigationStack {
-        CheckoutThreeDSChallengeView(
-            viewModel: CheckoutThreeDSChallengeViewModel(
+        ThreeDSChallengeView(
+            viewModel: ThreeDSChallengeViewModel(
                 requestURL: URL(string: "https://example.com")!
             )
         )

@@ -34,18 +34,18 @@ public struct CheckoutFlowView: View {
     private var currentStepView: some View {
         switch viewModel.viewState.currentStep {
         case .cardForm:
-            CheckoutCardFormView(viewModel: viewModel.cardFormViewModel)
+            CardFormView(viewModel: viewModel.cardFormViewModel)
 
         case .threeDSChallenge:
             if let threeDSChallengeViewModel = viewModel.threeDSChallengeViewModel {
-                CheckoutThreeDSChallengeView(viewModel: threeDSChallengeViewModel)
+                ThreeDSChallengeView(viewModel: threeDSChallengeViewModel)
             } else {
                 ProgressView()
             }
 
         case .paymentResult:
             if let paymentResultViewModel = viewModel.paymentResultViewModel {
-                CheckoutPaymentResultView(viewModel: paymentResultViewModel)
+                PaymentResultView(viewModel: paymentResultViewModel)
             } else {
                 ProgressView()
             }

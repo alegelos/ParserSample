@@ -3,22 +3,46 @@ import Observation
 
 @MainActor
 @Observable
-final class CheckoutPaymentResultViewModel {
+final class PaymentResultViewModel {
     
-    let status: PaymentOutcome
+    let status: PaymentResultViewState.PaymentOutcome
     let titleText: String
     let messageText: String
     let primaryButtonTitle: String
     let secondaryButtonTitle: String?
     
-    var viewState: CheckoutPaymentResultViewState {
-        CheckoutPaymentResultViewState(
+    var viewState: PaymentResultViewState {
+        PaymentResultViewState(
             status: status,
             titleText: titleText,
             messageText: messageText,
             primaryButtonTitle: primaryButtonTitle,
-            secondaryButtonTitle: secondaryButtonTitle
+            secondaryButtonTitle: secondaryButtonTitle,
+            statusImageName: statusImageName,
+            appearance: appearance
         )
+    }
+
+    private var statusImageName: String {
+        switch status {
+        case .success:
+            return "checkmark.circle.fill"
+        case .failure:
+            return "xmark.circle.fill"
+        case .cancelled:
+            return "minus.circle.fill"
+        }
+    }
+
+    private var appearance: PaymentResultViewState.CheckoutPaymentResultAppearance {
+        switch status {
+        case .success:
+            return .success
+        case .failure:
+            return .failure
+        case .cancelled:
+            return .cancelled
+        }
     }
     
     @ObservationIgnored
@@ -28,7 +52,7 @@ final class CheckoutPaymentResultViewModel {
     private let onSecondaryAction: (() -> Void)?
     
     init(
-        status: PaymentOutcome,
+        status: PaymentResultViewState.PaymentOutcome,
         titleText: String,
         messageText: String,
         primaryButtonTitle: String,
@@ -50,9 +74,9 @@ final class CheckoutPaymentResultViewModel {
         messageText: String = "Your payment was processed successfully.",
         primaryButtonTitle: String = "Done",
         onPrimaryAction: (() -> Void)? = nil
-    ) -> CheckoutPaymentResultViewModel {
-        CheckoutPaymentResultViewModel(
-            status: .success,
+    ) -> PaymentResultViewModel {
+        PaymentResultViewModel(
+            status: PaymentResultViewState.PaymentOutcome.success,
             titleText: titleText,
             messageText: messageText,
             primaryButtonTitle: primaryButtonTitle,
@@ -67,9 +91,9 @@ final class CheckoutPaymentResultViewModel {
         secondaryButtonTitle: String? = "Close",
         onPrimaryAction: (() -> Void)? = nil,
         onSecondaryAction: (() -> Void)? = nil
-    ) -> CheckoutPaymentResultViewModel {
-        CheckoutPaymentResultViewModel(
-            status: .failure,
+    ) -> PaymentResultViewModel {
+        PaymentResultViewModel(
+            status: PaymentResultViewState.PaymentOutcome.failure,
             titleText: titleText,
             messageText: messageText,
             primaryButtonTitle: primaryButtonTitle,
@@ -84,9 +108,9 @@ final class CheckoutPaymentResultViewModel {
         messageText: String = "The checkout flow was cancelled.",
         primaryButtonTitle: String = "Close",
         onPrimaryAction: (() -> Void)? = nil
-    ) -> CheckoutPaymentResultViewModel {
-        CheckoutPaymentResultViewModel(
-            status: .cancelled,
+    ) -> PaymentResultViewModel {
+        PaymentResultViewModel(
+            status: PaymentResultViewState.PaymentOutcome.cancelled,
             titleText: titleText,
             messageText: messageText,
             primaryButtonTitle: primaryButtonTitle,
