@@ -5,7 +5,7 @@ extension CheckoutAPISetup {
     struct TokenizeCardRequestDTO: Encodable {
         
         let type: String
-        let number: String//todo ale: investigate the type that is here, maybe it tell us how to cast it
+        let number: String
         let expiryMonth: String
         let expiryYear: String
         let cvv: String
