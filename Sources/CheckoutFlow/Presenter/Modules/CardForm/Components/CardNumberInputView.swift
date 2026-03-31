@@ -10,7 +10,7 @@ struct CardNumberInputView: View {
     init(
         cardNumberText: Binding<String>,
         schemeName: String? = nil,
-        placeholderText: String = "Card number"
+        placeholderText: String = CheckoutFlowLocalized.string("checkout.card_form.card_number.placeholder")
     ) {
         self._cardNumberText = cardNumberText
         self.schemeName = schemeName
@@ -19,7 +19,7 @@ struct CardNumberInputView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Card Number")
+            Text(CheckoutFlowLocalized.string("checkout.card_form.card_number.title"))
                 .font(.footnote)
                 .fontWeight(.semibold)
             
@@ -27,7 +27,7 @@ struct CardNumberInputView: View {
                 TextField(placeholderText, text: $cardNumberText)
                     .keyboardType(.numberPad)
                     .textContentType(.creditCardNumber)
-                    .onChange(of: cardNumberText) { _, newValue in
+                    .onChange(of: cardNumberText) { newValue in
                         cardNumberText = CardInputUtils.formatCardNumberInput(from: newValue)
                     }
                 

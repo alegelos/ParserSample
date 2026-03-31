@@ -1,32 +1,30 @@
 import Foundation
-import Observation
 
 @MainActor
-@Observable
-final class CardFormViewModel {
+final class CardFormViewModel: ObservableObject {
     
-    var cardNumberText: String = "" {
+    @Published var cardNumberText: String = "" {
         didSet {
             detectedSchemeName = detectCardSchemeName(from: cardNumberText)
             clearErrorMessage()
         }
     }
     
-    var expiryDateText: String = "" {
+    @Published var expiryDateText: String = "" {
         didSet {
             clearErrorMessage()
         }
     }
     
-    var cvvText: String = "" {
+    @Published var cvvText: String = "" {
         didSet {
             clearErrorMessage()
         }
     }
     
-    var detectedSchemeName: String?
-    var errorMessage: String?
-    var isLoading: Bool = false
+    @Published var detectedSchemeName: String?
+    @Published var errorMessage: String?
+    @Published var isLoading: Bool = false
     
     let payButtonTitle: String
     
@@ -41,32 +39,14 @@ final class CardFormViewModel {
             && !isLoading
     }
     
-    var viewState: CardFormViewState {
-        CardFormViewState(
-            cardNumberText: cardNumberText,
-            expiryDateText: expiryDateText,
-            cvvText: cvvText,
-            detectedSchemeName: detectedSchemeName,
-            errorMessage: errorMessage,
-            isLoading: isLoading,
-            isPayButtonEnabled: isPayButtonEnabled,
-            payButtonTitle: payButtonTitle
-        )
-    }
-    
-    @ObservationIgnored
     private let paymentFlowProvider: any PaymentFlowProviderProtocol
-    
-    @ObservationIgnored
-    private let onCardTokenized: ((PaymentToken) -> Void)?
-    
-    @ObservationIgnored
+    private let onCardTokenized: ((PaymentToken) async -> Void)?
     private let mapSubmitErrorMessage: ((Error) -> String)?
     
     init(
-        payButtonTitle: String = "Pay",
+        payButtonTitle: String = CheckoutFlowLocalized.string("checkout.card_form.pay_button_title"),
         paymentFlowProvider: any PaymentFlowProviderProtocol,
-        onCardTokenized: ((PaymentToken) -> Void)? = nil,
+        onCardTokenized: ((PaymentToken) async -> Void)? = nil,
         mapSubmitErrorMessage: ((Error) -> String)? = nil
     ) {
         self.payButtonTitle = payButtonTitle
@@ -90,8 +70,12 @@ final class CardFormViewModel {
         
         do {
             let paymentToken = try await paymentFlowProvider.tokenizeCard(cardDetails)
+
+            if let onCardTokenized {
+                await onCardTokenized(paymentToken)
+            }
+
             isLoading = false
-            onCardTokenized?(paymentToken)
         } catch {
             isLoading = false
             errorMessage = mapSubmitErrorMessage?(error) ?? "Unable to process the payment. Please try again."
@@ -106,25 +90,25 @@ final class CardFormViewModel {
     
     private func validateForm() -> String? {
         if sanitizedCardNumber.isEmpty {
-            return "Enter the card number."
+            return CheckoutFlowLocalized.string("checkout.card_form.validation.card_number.empty")
         }
         
         if sanitizedCardNumber.count < 12 {
-            return "Enter a valid card number."
+            return CheckoutFlowLocalized.string("checkout.card_form.validation.card_number.invalid")
         }
         
         if sanitizedExpiryDate.count != 4 {
-            return "Enter a valid expiry date."
+            return CheckoutFlowLocalized.string("checkout.card_form.validation.expiry.invalid")
         }
         
         let expirationMonthText = String(sanitizedExpiryDate.prefix(2))
         guard let expirationMonthNumber = Int(expirationMonthText),
               (1...12).contains(expirationMonthNumber) else {
-            return "Enter a valid expiry month."
+            return CheckoutFlowLocalized.string("checkout.card_form.validation.expiry_month.invalid")
         }
         
         if sanitizedSecurityCode.count < 3 {
-            return "Enter a valid security code."
+            return CheckoutFlowLocalized.string("checkout.card_form.validation.security_code.invalid")
         }
         
         return nil

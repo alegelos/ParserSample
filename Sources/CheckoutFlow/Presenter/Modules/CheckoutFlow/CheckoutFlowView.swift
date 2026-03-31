@@ -2,7 +2,7 @@ import SwiftUI
 
 public struct CheckoutFlowView: View {
 
-    @State private var viewModel: CheckoutFlowViewModel
+    @StateObject private var viewModel: CheckoutFlowViewModel
 
     @MainActor
     public init(
@@ -10,29 +10,26 @@ public struct CheckoutFlowView: View {
         mapSubmitErrorMessage: ((Error) -> String)? = nil,
         onComplete: @escaping (CheckoutFlowCompletionResult) -> Void
     ) throws {
-        self._viewModel = State(
-            initialValue: try CheckoutFlowModule.shared.makeCheckoutFlowViewModel(
-                paymentConfiguration: paymentConfiguration,
-                mapSubmitErrorMessage: mapSubmitErrorMessage,
-                onComplete: onComplete
-            )
+        let checkoutFlowViewModel = try CheckoutFlowModule.shared.makeCheckoutFlowViewModel(
+            paymentConfiguration: paymentConfiguration,
+            mapSubmitErrorMessage: mapSubmitErrorMessage,
+            onComplete: onComplete
         )
-    }
 
-    init(viewModel: CheckoutFlowViewModel) {
-        self._viewModel = State(initialValue: viewModel)
+        _viewModel = StateObject(wrappedValue: checkoutFlowViewModel)
     }
 
     public var body: some View {
-        NavigationStack {
+        NavigationView {
             currentStepView
-                .animation(.default, value: viewModel.viewState.currentStep)
+                .animation(.default, value: viewModel.currentStep)
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 
     @ViewBuilder
     private var currentStepView: some View {
-        switch viewModel.viewState.currentStep {
+        switch viewModel.currentStep {
         case .cardForm:
             CardFormView(viewModel: viewModel.cardFormViewModel)
 
@@ -52,33 +49,3 @@ public struct CheckoutFlowView: View {
         }
     }
 }
-
-#if DEBUG
-private struct PreviewPaymentFlowProvider: PaymentFlowProviderProtocol {
-
-    func tokenizeCard(_ cardDetails: CardDetails) async throws -> PaymentToken {
-        PaymentToken(value: "preview_token")
-    }
-
-    func createPayment(_ cardPayment: CardPayment) async throws -> ThreeDSPaymentSession {
-        ThreeDSPaymentSession(
-            status: .pending,
-            redirectURL: URL(string: "https://example.com/3ds")!
-        )
-    }
-}
-
-#Preview {
-    CheckoutFlowView(
-        viewModel: CheckoutFlowViewModel(
-            payButtonTitle: "Pay €10.99",
-            paymentFlowProvider: PreviewPaymentFlowProvider(),
-            amountInMinorUnits: 1_099,
-            currencyCode: "EUR",
-            successURL: URL(string: "myapp://checkout/success")!,
-            failureURL: URL(string: "myapp://checkout/failure")!,
-            onComplete: { _ in }
-        )
-    )
-}
-#endif

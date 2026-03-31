@@ -13,12 +13,12 @@ public struct CheckoutFlowPaymentConfiguration: Sendable, Equatable {
         currencyCode: String,
         successURL: URL,
         failureURL: URL,
-        payButtonTitle: String = "Pay"
+        payButtonTitle: String? = nil
     ) {
         self.amountInMinorUnits = amountInMinorUnits
         self.currencyCode = currencyCode
         self.successURL = successURL
         self.failureURL = failureURL
-        self.payButtonTitle = payButtonTitle
+        self.payButtonTitle = payButtonTitle ?? CheckoutFlowLocalized.string("checkout.card_form.pay_button_title")
     }
 }

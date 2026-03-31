@@ -8,19 +8,20 @@ It is intentionally **not** the SDK README and **not** the Sample Application RE
 
 The repository is split into two deliverables:
 
-1. **`CheckoutFlow`** — a reusable Swift Package that encapsulates the entire payment flow:
+1. **`CheckoutFlow`** — a reusable Swift Package that encapsulates the payment flow:
    - card input
    - tokenization
    - payment creation
    - 3DS challenge handling
-   - native payment result states
-2. **`SampleApplication`** — a very thin host app whose only job is to:
-   - inject environment-specific secrets and base URL
-   - configure the SDK once
-   - present the checkout flow
-   - listen to the final result
+   - native result presentation
+2. **`SampleApplication`** — a thin host app that:
+   - reads environment-specific secrets and base URL
+   - builds the SDK configuration
+   - creates the shared module used by the flow
+   - presents the checkout flow
+   - listens to the final result
 
-The sample app stays deliberately small. The payment logic, UI state transitions, request construction, domain mapping, and 3DS handling all live inside the package.
+A small but important implementation detail: the current sample app creates the shared module from `SampleCheckoutHostView.resolveState()` when the checkout host is built. The SDK design still supports one-time bootstrap and reuse across many payment attempts, but the sample app keeps setup close to the demo flow entry point.
 
 ---
 
@@ -30,11 +31,11 @@ The brief explicitly calls out user experience, maintainability, readability, sc
 
 The main priorities were:
 
-- **A small public API surface** so the host app cannot accidentally couple itself to internal flow details.
-- **Layered architecture** Presenter/Domain/Data so networking, mapping, domain models, and presentation can evolve independently.
-- **Reusable payment flow setup** where one-time SDK bootstrap is separated from per-payment data.
-- **Thin integration point** in the sample app, matching the spirit of the challenge.
-- **Clear failure states** instead of crashes, hidden side effects, or “magic” transitions.
+- **A small host-app integration surface** so the app does not couple itself to internal flow steps.
+- **Layered architecture** (`Composition` / `Domain` / `Data` / `Presenter`) so networking, mapping, and presentation can evolve independently.
+- **A reusable module design** where shared SDK bootstrap is separated from per-payment data.
+- **A thin demo app** that delegates payment logic and flow handling to the package.
+- **Explicit failure states** instead of crashes or hidden transitions.
 
 ---
 
@@ -43,7 +44,8 @@ The main priorities were:
 ```text
 SampleApplication
   └── reads secrets from xcconfig / Info.plist
-  └── creates CheckoutFlowModule once
+  └── builds CheckoutFlowConfiguration
+  └── creates CheckoutFlowModule
   └── presents CheckoutFlowView with payment-specific configuration
 
 CheckoutFlow (Swift Package)
@@ -75,17 +77,17 @@ CheckoutFlow (Swift Package)
 
 ### Why this split
 
-I wanted the package to expose a **product-facing contract**, not its internal mechanics.
+I wanted the package to expose a feature-level contract, not its internal mechanics.
 
-That is why the public surface is intentionally small:
+That is why the intended integration point is deliberately small:
 
 - `CheckoutFlowModule.create(configuration:)`
 - `CheckoutFlowView(...)`
 - `CheckoutFlowConfiguration`
 - `CheckoutFlowPaymentConfiguration`
-- completion result types
+- `CheckoutFlowCompletionResult`
 
-The host application does **not** know about:
+The host application does **not** need to know about:
 
 - request DTOs
 - endpoint setup
@@ -94,15 +96,15 @@ The host application does **not** know about:
 - internal step transitions
 - internal view models
 
-That keeps the integration clean and makes the package easier to evolve without breaking adopters.
+That keeps the integration cleaner and makes the package easier to evolve.
 
 ---
 
-## The most important design decision: bootstrap vs per-payment configuration
+## The most important design decision: shared setup vs per-payment configuration
 
 A key design point is the split between:
 
-### 1. One-time module bootstrap
+### 1. Shared module setup
 
 `CheckoutFlowModule.create(configuration:)`
 
@@ -113,13 +115,13 @@ This is for values that belong to the SDK/module lifecycle:
 - secret API key
 - optionally, a custom network session
 
-These values are environment-level concerns and normally do **not** change for every payment.
+These values are infrastructure concerns and normally do **not** change for every payment.
 
 ### 2. Per-payment configuration
 
 `CheckoutFlowPaymentConfiguration`
 
-This is for values that belong to an individual checkout session:
+This is for values that belong to an individual checkout attempt:
 
 - amount
 - currency
@@ -127,12 +129,12 @@ This is for values that belong to an individual checkout session:
 - failure callback URL
 - pay button title
 
-That separation makes the package much more reusable. An app can initialize the module once and present `CheckoutFlowView` multiple times for different payment attempts without rebuilding the SDK state every time.
+That separation makes the package reusable. A host app can build the module once and present `CheckoutFlowView` multiple times with different payment inputs, even though the current sample app keeps module creation close to the presentation entry point.
 
-This also keeps the mental model clean:
+This keeps the mental model clean:
 
-- **module configuration** = app/infrastructure concern
-- **payment configuration** = feature/use-case concern
+- **module configuration** = infrastructure concern
+- **payment configuration** = use-case concern
 
 ---
 
@@ -140,16 +142,25 @@ This also keeps the mental model clean:
 
 The flow implemented in the package is:
 
-1. User enters card number, expiry date, and CVV.
+1. The user enters card number, expiry date, and CVV.
 2. `CardFormViewModel` validates and sanitizes the input.
 3. The package tokenizes the card using Checkout’s token endpoint.
-4. After receiving the token, the package creates the payment request.
-5. If the payment response is `Pending` and contains a redirect URL, the flow moves to the 3DS challenge screen.
+4. The package creates the payment request.
+5. If the payment response is `pending` and contains a redirect URL, the flow moves to the 3DS challenge screen.
 6. A web view loads the redirect URL.
-7. Navigation is observed until the success or failure callback URL is detected.
-8. The web challenge is dismissed logically inside the flow.
-9. A native result screen is shown.
-10. The host app receives a final completion callback.
+7. Navigation is observed until the configured success or failure callback URL is detected.
+8. The flow transitions to a native result screen.
+9. The host app receives a final completion callback when the result screen action is taken.
+
+### Important current behavior
+
+The implementation is intentionally narrow around the challenge flow:
+
+- `pending` + redirect URL is the happy path into 3DS.
+- `pending` without redirect URL becomes a native failure state.
+- any unsupported payment status becomes a native failure state.
+
+So this submission is optimized around the 3DS-oriented flow exercised by the challenge, rather than around a full multi-status payment state machine.
 
 ---
 
@@ -157,7 +168,7 @@ The flow implemented in the package is:
 
 ## Composition
 
-The `Composition` folder acts as the package’s assembly boundary.
+The `Composition` folder acts as the package assembly boundary.
 
 ### `CheckoutFlowConfiguration`
 Represents SDK-level configuration.
@@ -166,7 +177,7 @@ Represents SDK-level configuration.
 Represents a single checkout attempt.
 
 ### `CheckoutFlowModule`
-Acts as the package bootstrap/factory.
+Acts as the package bootstrap / factory.
 
 Responsibilities:
 
@@ -175,7 +186,7 @@ Responsibilities:
 - wires the public view to internal dependencies
 - prevents the sample app from constructing internal objects directly
 
-This was intentional. I wanted the package to own its internal object graph and avoid exposing implementation detail constructors publicly.
+This was intentional. I wanted the package to own its object graph instead of exposing implementation-detail constructors publicly.
 
 ---
 
@@ -192,9 +203,7 @@ Examples:
 - `PaymentStatus`
 - `PaymentFlowProviderProtocol`
 
-The important point here is that the rest of the system works with domain concepts rather than raw API JSON.
-
-That keeps UI logic focused on UI decisions, not transport details.
+The important point here is that the rest of the package works with domain concepts rather than raw API payloads.
 
 ---
 
@@ -214,14 +223,14 @@ Responsibilities:
 - body encoding
 
 ### DTOs
-Request/response DTOs isolate API payload shapes from the rest of the codebase.
+Request and response DTOs isolate transport payload shapes from the rest of the codebase.
 
 That gives a few benefits:
 
 - API naming conventions stay in one place
 - domain models remain clean
 - mapping logic is explicit and testable
-- future API changes have a single containment zone
+- future API changes have a clear containment zone
 
 ### `CheckoutAPIProvider`
 Concrete implementation of `PaymentFlowProviderProtocol`.
@@ -232,8 +241,6 @@ Responsibilities:
 - create payment
 - decode response payloads
 - return domain models to the presenter layer
-
-This provider is intentionally small because request construction and mapping are already delegated to the setup and DTO layers.
 
 ---
 
@@ -261,8 +268,6 @@ It coordinates the high-level step machine:
 - 3DS challenge
 - payment result
 
-It deliberately owns the transition logic so child modules stay focused on their own single responsibility.
-
 ### `ThreeDSChallengeViewModel`
 Owns:
 
@@ -278,7 +283,7 @@ Owns the native result presentation for:
 - failure
 - cancellation
 
-This split keeps each presenter simple and prevents one large “god view model”.
+This split avoids one large “god view model” and keeps responsibilities focused.
 
 ---
 
@@ -286,78 +291,112 @@ This split keeps each presenter simple and prevents one large “god view model�
 
 This was a deliberate API design choice.
 
-The challenge says the host app should inject secrets and listen to the final result. I interpreted that as a signal that the package should expose the flow as a **feature**, not as a bag of internal types.
+The host app should be able to:
 
-So the integration point is:
+- configure the SDK
+- present the flow
+- receive the final outcome
 
-- configure once
-- present view
-- receive completion
+It should not need to know how the card form works internally, how 3DS navigation is resolved, or how result screens are composed.
 
-The host app should not need to know how the card form works internally, how 3DS decisions are resolved, or how result screens are composed.
-
-That keeps encapsulation strong and makes the package feel closer to a production-ready internal SDK.
+That keeps encapsulation strong and makes the package closer to a production-style internal SDK.
 
 ---
 
-## Why I used my own `iOSCleanNetwork` package (writen by me and still needs some tweaking on the AI part)
+## Why I used my own `iOSCleanNetwork` package
 
 The only external package used here is **`iOSCleanNetwork`**, which is my own reusable networking package.
 
-I included it because it improves the architectural quality of the solution in a few very practical ways:
+I used it because it improves the structure of the solution in practical ways:
 
-- it provides a clean request abstraction via `ApiSetupProtocol`
+- it provides a request abstraction via `ApiSetupProtocol`
 - it keeps `URLSession` behind a protocol boundary
 - it makes request-building and transport easier to test
-- it lets the Checkout package focus on payment domain logic instead of generic networking infrastructure
+- it lets the Checkout package focus on payment-flow concerns instead of generic networking infrastructure
 
-In other words, I did **not** use a third-party payment SDK or a UI dependency to shortcut the challenge.
-I used my own infrastructure package to keep the submission cleaner, more modular, and more testable.
+In other words, I did **not** use a third-party payment SDK or UI package to shortcut the challenge. I used my own infrastructure layer to keep the submission modular and testable.
 
 ---
 
 ## Testing strategy
 
-The existing automated test coverage focuses on the most deterministic and most valuable low-level boundaries first:
+The automated coverage is not limited to the data layer anymore.
+
+The current test suite covers both:
+
+### Data-layer behavior
 
 - request construction
 - authorization headers
 - endpoint paths
-- provider behavior
-- response mapping to domain models
+- response decoding
+- mapping to domain models
+- injected transport failures
 
-This is where the highest signal-to-noise ratio exists for a small challenge project.
+### Presenter-layer behavior
 
-The data layer is tested with mocked networking through the infrastructure abstraction rather than through live network calls.
+- card form validation and sanitization
+- card scheme detection
+- checkout step transitions
+- 3DS callback matching
+- native result behavior
+- completion callback outcomes
 
-That means the tests validate:
+This gives confidence in both the integration boundary and the internal flow orchestration without relying on live network calls.
 
-- the token request is built correctly
-- the payment request is built correctly
-- decoded fixtures map into the expected domain objects
-- failures can be injected and asserted in isolation
+---
 
-This gives confidence in the most failure-prone integration boundary without requiring end-to-end environment dependence.
+## Current trade-offs and known scope limits
+
+A few implementation choices are intentionally narrow and worth calling out explicitly:
+
+### Card-scheme behavior is partial
+
+The package currently detects a few schemes for presentation purposes:
+- Visa
+- Mastercard
+- Amex
+- Discover
+
+But the input behavior is still generic:
+- card number formatting is grouped in blocks of 4
+- CVV validation uses a generic minimum length of 3
+- there is no scheme-specific Amex formatting or validation path yet
+
+### Payment-status handling is intentionally narrow
+
+The current code handles:
+- `pending` + redirect URL
+- `pending` without redirect URL -> failure
+- unknown status -> failure
+
+That is enough for the challenge flow here, but it is not yet a broader production payment status model.
+
+---
 
 ## Sample application responsibilities
 
-The sample app is intentionally thin, dump and no arch. It also uses force unwraping urls URL()!
+The sample app is intentionally thin and demo-focused.
 
-It does three things:
+It currently does five things:
 
 1. reads secrets and base URL from configuration
-2. bootstraps the module
-3. presents the package view and shows the final outcome
+2. builds `CheckoutFlowConfiguration`
+3. creates the shared module used by the flow
+4. presents the package view in a sheet
+5. shows the final outcome text after dismissal
 
 The app does **not**:
 
-- build payment requests manually
-- perform tokenization itself
+- build API requests manually
+- tokenize cards itself
 - own 3DS web navigation logic
 - parse API payloads
-- decide flow steps internally
+- decide checkout flow steps internally
 
 That logic belongs in the package.
+
+The sample also intentionally keeps some demo-level shortcuts, for example hardcoded payment data and force-unwrapped demo callback URLs in `CheckoutFlowSetup.samplePayment`.
 
 ---
 
@@ -365,10 +404,9 @@ That logic belongs in the package.
 
 This submission was built to solve the exercise, but also to demonstrate how I think about SDK boundaries, feature modularization, presentation architecture, and pragmatic reuse.
 
-The implementation is intentionally not “just enough to work.”
-It is structured to show:
+The implementation is intentionally more structured than a “just make it work” sample. It is designed to show:
 
-- how I separate product logic from infrastructure
+- how I separate feature logic from infrastructure
 - how I protect module boundaries
 - how I keep host apps thin
 - how I design for testability from the beginning

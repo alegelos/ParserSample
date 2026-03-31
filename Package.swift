@@ -4,8 +4,9 @@ import PackageDescription
 
 let package = Package(
     name: "CheckoutFlow",
+    defaultLocalization: "en",
     platforms: [
-        .iOS(.v18)
+        .iOS(.v15)
     ],
     products: [
         .library(
@@ -21,6 +22,9 @@ let package = Package(
             name: "CheckoutFlow",
             dependencies: [
                 .product(name: "iOSCleanNetwork", package: "iOSCleanNetwork")
+            ],
+            resources: [
+                .process("Resources")
             ]
         ),
         .testTarget(

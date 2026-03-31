@@ -9,7 +9,7 @@ struct CVVInputView: View {
     
     init(
         cvvText: Binding<String>,
-        placeholderText: String = "CVV",
+        placeholderText: String = CheckoutFlowLocalized.string("checkout.card_form.security_code.placeholder"),
         maximumLength: Int = 4
     ) {
         self._cvvText = cvvText
@@ -19,15 +19,17 @@ struct CVVInputView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Security Code")
+            Text(CheckoutFlowLocalized.string("checkout.card_form.security_code.title"))
                 .font(.footnote)
                 .fontWeight(.semibold)
             
             SecureField(placeholderText, text: $cvvText)
                 .keyboardType(.numberPad)
-                .textContentType(.creditCardSecurityCode)
-                .onChange(of: cvvText) { _, newValue in
-                    cvvText = CardInputUtils.sanitizeCardSecurityCodeInput(from: newValue, maximumLength: maximumLength)
+                .onChange(of: cvvText) { newValue in
+                    cvvText = CardInputUtils.sanitizeCardSecurityCodeInput(
+                        from: newValue,
+                        maximumLength: maximumLength
+                    )
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 14)
@@ -41,7 +43,6 @@ struct CVVInputView: View {
                 )
         }
     }
-    
 }
 
 #if DEBUG

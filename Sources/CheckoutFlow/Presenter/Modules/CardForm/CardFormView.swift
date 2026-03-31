@@ -1,9 +1,8 @@
 import SwiftUI
-import Observation
 
 struct CardFormView: View {
     
-    @Bindable var viewModel: CardFormViewModel
+    @ObservedObject var viewModel: CardFormViewModel
     @State private var isLoadingOverlayVisible = false
     
     var body: some View {
@@ -16,15 +15,19 @@ struct CardFormView: View {
             
             if isLoadingOverlayVisible {
                 CardFormBlockingLoadingView()
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.98)),
-                        removal: .opacity
-                    ))
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.98)),
+                            removal: .opacity
+                        )
+                    )
                     .zIndex(1)
             }
         }
-        .navigationTitle("Checkout")
-        .onChange(of: viewModel.isLoading) { _, isLoading in
+        .navigationTitle(
+            CheckoutFlowLocalized.string("checkout.card_form.navigation_title")
+        )
+        .onChange(of: viewModel.isLoading) { isLoading in
             withAnimation(.easeInOut(duration: 0.2)) {
                 isLoadingOverlayVisible = isLoading
             }
@@ -77,7 +80,7 @@ private struct CardFormBlockingLoadingView: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(.black.opacity(0.16))
+                .fill(Color.black.opacity(0.16))
                 .ignoresSafeArea()
             
             VStack(spacing: 16) {
@@ -85,20 +88,23 @@ private struct CardFormBlockingLoadingView: View {
                     .controlSize(.large)
                 
                 VStack(spacing: 6) {
-                    Text("Processing payment")
+                    Text(CheckoutFlowLocalized.string("checkout.card_form.loading_title"))
                         .font(.headline)
                     
-                    Text("Please wait a moment...")
+                    Text(CheckoutFlowLocalized.string("checkout.card_form.loading_message"))
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
             }
             .padding(.horizontal, 28)
             .padding(.vertical, 24)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(.white.opacity(0.12))
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
             .shadow(radius: 20, y: 8)
             .padding(24)
@@ -121,15 +127,18 @@ private struct PreviewPaymentFlowProvider: PaymentFlowProviderProtocol {
     }
 }
 
-#Preview {
-    NavigationStack {
-        CardFormView(
-            viewModel: CardFormViewModel(
-                payButtonTitle: "Pay",
-                paymentFlowProvider: PreviewPaymentFlowProvider(),
-                onCardTokenized: { _ in }
+struct CardFormView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+            CardFormView(
+                viewModel: CardFormViewModel(
+                    payButtonTitle: CheckoutFlowLocalized.string("checkout.card_form.pay_button_title"),
+                    paymentFlowProvider: PreviewPaymentFlowProvider(),
+                    onCardTokenized: { _ in }
+                )
             )
-        )
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 #endif

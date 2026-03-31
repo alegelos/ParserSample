@@ -25,7 +25,7 @@ struct CardSchemeIconView: View {
                 .fill(Color(.secondarySystemBackground))
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Detected card scheme \(cardScheme.displayName)")
+        .accessibilityLabel(CheckoutFlowLocalized.string("checkout.card_scheme.detected.accessibility", cardScheme.displayName))
     }
 }
 

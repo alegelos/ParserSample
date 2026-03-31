@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/alegelos/iOSCleanNetwork",
       "state" : {
-        "revision" : "d8d27c1639276d88300d9660a01ff378ff650dc5",
-        "version" : "1.0.2"
+        "revision" : "85481510c4d4ff96dfffa9591f83bf01daacd3f5",
+        "version" : "1.0.3"
       }
     }
   ],

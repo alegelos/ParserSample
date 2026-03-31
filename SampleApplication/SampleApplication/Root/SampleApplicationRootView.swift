@@ -6,37 +6,35 @@ struct SampleApplicationRootView: View {
     @State private var isPresentingCheckout = false
     @State private var resultMessage: String?
     @State private var pendingCheckoutResult: CheckoutFlowCompletionResult?
-
+    
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                Button("Start Checkout") {
-                    resultMessage = nil
-                    pendingCheckoutResult = nil
-                    isPresentingCheckout = true
-                }
-                .buttonStyle(.borderedProminent)
-
-                if let resultMessage {
-                    Text(resultMessage)
-                        .font(.subheadline)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(spacing: 16) {
+            Button("Start Checkout") {
+                resultMessage = nil
+                pendingCheckoutResult = nil
+                isPresentingCheckout = true
             }
-            .padding(24)
-            .navigationTitle("Checkout Sample")
-            .sheet(
-                isPresented: $isPresentingCheckout,
-                onDismiss: handleCheckoutDismissed
-            ) {
-                SampleCheckoutHostView(
-                    onFinished: { result in
-                        pendingCheckoutResult = result
-                        isPresentingCheckout = false
-                    }
-                )
+            .buttonStyle(.borderedProminent)
+            
+            if let resultMessage {
+                Text(resultMessage)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
             }
+        }
+        .padding(24)
+        .navigationTitle("Checkout Sample")
+        .sheet(
+            isPresented: $isPresentingCheckout,
+            onDismiss: handleCheckoutDismissed
+        ) {
+            SampleCheckoutHostView(
+                onFinished: { result in
+                    pendingCheckoutResult = result
+                    isPresentingCheckout = false
+                }
+            )
         }
     }
 

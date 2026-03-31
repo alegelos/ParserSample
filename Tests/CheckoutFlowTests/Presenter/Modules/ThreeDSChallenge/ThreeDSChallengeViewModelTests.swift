@@ -1,17 +1,12 @@
 import Foundation
-import Testing
+import XCTest
 
 @testable import CheckoutFlow
 
-struct ThreeDSChallengeViewModelTests { }
-
-// MARK: - View state
-
-extension ThreeDSChallengeViewModelTests {
+final class ThreeDSChallengeViewModelTests: XCTestCase {
 
     @MainActor
-    @Test
-    func init_buildsExpectedDefaultViewState() {
+    func test_init_buildsExpectedDefaultViewState() {
         // Given
         let requestURL = URL(string: "https://example.com/3ds")!
 
@@ -20,8 +15,9 @@ extension ThreeDSChallengeViewModelTests {
         )
 
         // Then
-        #expect(
-            threeDSChallengeViewModel.viewState == ThreeDSChallengeViewState(
+        XCTAssertEqual(
+            threeDSChallengeViewModel.viewState,
+            ThreeDSChallengeViewState(
                 titleText: "3D Secure",
                 requestURL: requestURL,
                 isLoading: true,
@@ -32,13 +28,12 @@ extension ThreeDSChallengeViewModelTests {
                 closeButtonTitle: "Close"
             )
         )
-        #expect(threeDSChallengeViewModel.viewState.shouldShowLoadingOverlay)
-        #expect(threeDSChallengeViewModel.viewState.shouldShowErrorView == false)
+        XCTAssertTrue(threeDSChallengeViewModel.viewState.shouldShowLoadingOverlay)
+        XCTAssertFalse(threeDSChallengeViewModel.viewState.shouldShowErrorView)
     }
 
     @MainActor
-    @Test
-    func didStartLoading_clearsPreviousError_andShowsLoading() {
+    func test_didStartLoading_clearsPreviousError_andShowsLoading() {
         // Given
         let threeDSChallengeViewModel = ThreeDSChallengeViewModel(
             requestURL: URL(string: "https://example.com/3ds")!
@@ -50,13 +45,12 @@ extension ThreeDSChallengeViewModelTests {
         threeDSChallengeViewModel.didStartLoading()
 
         // Then
-        #expect(threeDSChallengeViewModel.isLoading)
-        #expect(threeDSChallengeViewModel.errorMessage == nil)
+        XCTAssertTrue(threeDSChallengeViewModel.isLoading)
+        XCTAssertNil(threeDSChallengeViewModel.errorMessage)
     }
 
     @MainActor
-    @Test
-    func didFinishLoading_hidesLoading() {
+    func test_didFinishLoading_hidesLoading() {
         // Given
         let threeDSChallengeViewModel = ThreeDSChallengeViewModel(
             requestURL: URL(string: "https://example.com/3ds")!
@@ -66,12 +60,11 @@ extension ThreeDSChallengeViewModelTests {
         threeDSChallengeViewModel.didFinishLoading()
 
         // Then
-        #expect(threeDSChallengeViewModel.isLoading == false)
+        XCTAssertFalse(threeDSChallengeViewModel.isLoading)
     }
 
     @MainActor
-    @Test
-    func didFailLoading_withNonCancelledError_showsError() {
+    func test_didFailLoading_withNonCancelledError_showsError() {
         // Given
         let threeDSChallengeViewModel = ThreeDSChallengeViewModel(
             requestURL: URL(string: "https://example.com/3ds")!
@@ -81,17 +74,16 @@ extension ThreeDSChallengeViewModelTests {
         threeDSChallengeViewModel.didFailLoading(with: URLError(.badServerResponse))
 
         // Then
-        #expect(threeDSChallengeViewModel.isLoading == false)
-        #expect(
-            threeDSChallengeViewModel.errorMessage
-                == "Unable to load the authentication page. Please try again."
+        XCTAssertFalse(threeDSChallengeViewModel.isLoading)
+        XCTAssertEqual(
+            threeDSChallengeViewModel.errorMessage,
+            "Unable to load the authentication page. Please try again."
         )
-        #expect(threeDSChallengeViewModel.viewState.shouldShowErrorView)
+        XCTAssertTrue(threeDSChallengeViewModel.viewState.shouldShowErrorView)
     }
 
     @MainActor
-    @Test
-    func didFailLoading_withCancelledError_doesNothing() {
+    func test_didFailLoading_withCancelledError_doesNothing() {
         // Given
         let threeDSChallengeViewModel = ThreeDSChallengeViewModel(
             requestURL: URL(string: "https://example.com/3ds")!
@@ -101,18 +93,12 @@ extension ThreeDSChallengeViewModelTests {
         threeDSChallengeViewModel.didFailLoading(with: URLError(.cancelled))
 
         // Then
-        #expect(threeDSChallengeViewModel.isLoading)
-        #expect(threeDSChallengeViewModel.errorMessage == nil)
+        XCTAssertTrue(threeDSChallengeViewModel.isLoading)
+        XCTAssertNil(threeDSChallengeViewModel.errorMessage)
     }
-}
-
-// MARK: - Navigation actions
-
-extension ThreeDSChallengeViewModelTests {
 
     @MainActor
-    @Test
-    func decideNavigationPolicy_whenActionIsAllow_returnsTrue_andDoesNotComplete() {
+    func test_decideNavigationPolicy_whenActionIsAllow_returnsTrue_andDoesNotComplete() {
         // Given
         let completionSpy = ThreeDSCompletionSpy()
 
@@ -130,13 +116,12 @@ extension ThreeDSChallengeViewModelTests {
         )
 
         // Then
-        #expect(shouldAllowNavigation)
-        #expect(completionSpy.recordedCompletions.isEmpty)
+        XCTAssertTrue(shouldAllowNavigation)
+        XCTAssertTrue(completionSpy.recordedCompletions.isEmpty)
     }
 
     @MainActor
-    @Test
-    func decideNavigationPolicy_whenActionIsFinishSuccess_returnsFalse_andCompletesSuccess() {
+    func test_decideNavigationPolicy_whenActionIsFinishSuccess_returnsFalse_andCompletesSuccess() {
         // Given
         let completionSpy = ThreeDSCompletionSpy()
 
@@ -154,13 +139,12 @@ extension ThreeDSChallengeViewModelTests {
         )
 
         // Then
-        #expect(shouldAllowNavigation == false)
-        #expect(completionSpy.recordedCompletions == [.success])
+        XCTAssertFalse(shouldAllowNavigation)
+        XCTAssertEqual(completionSpy.recordedCompletions, [.success])
     }
 
     @MainActor
-    @Test
-    func decideNavigationPolicy_whenActionIsFinishFailure_returnsFalse_andCompletesFailure() {
+    func test_decideNavigationPolicy_whenActionIsFinishFailure_returnsFalse_andCompletesFailure() {
         // Given
         let completionSpy = ThreeDSCompletionSpy()
 
@@ -178,13 +162,12 @@ extension ThreeDSChallengeViewModelTests {
         )
 
         // Then
-        #expect(shouldAllowNavigation == false)
-        #expect(completionSpy.recordedCompletions == [.failure(message: "3DS failed")])
+        XCTAssertFalse(shouldAllowNavigation)
+        XCTAssertEqual(completionSpy.recordedCompletions, [.failure(message: "3DS failed")])
     }
 
     @MainActor
-    @Test
-    func decideNavigationPolicy_whenActionIsFinishCancelled_returnsFalse_andCompletesCancelled() {
+    func test_decideNavigationPolicy_whenActionIsFinishCancelled_returnsFalse_andCompletesCancelled() {
         // Given
         let completionSpy = ThreeDSCompletionSpy()
 
@@ -202,13 +185,12 @@ extension ThreeDSChallengeViewModelTests {
         )
 
         // Then
-        #expect(shouldAllowNavigation == false)
-        #expect(completionSpy.recordedCompletions == [.cancelled])
+        XCTAssertFalse(shouldAllowNavigation)
+        XCTAssertEqual(completionSpy.recordedCompletions, [.cancelled])
     }
 
     @MainActor
-    @Test
-    func didTapCloseButton_completesCancelled() {
+    func test_didTapCloseButton_completesCancelled() {
         // Given
         let completionSpy = ThreeDSCompletionSpy()
 
@@ -223,11 +205,9 @@ extension ThreeDSChallengeViewModelTests {
         threeDSChallengeViewModel.didTapCloseButton()
 
         // Then
-        #expect(completionSpy.recordedCompletions == [.cancelled])
+        XCTAssertEqual(completionSpy.recordedCompletions, [.cancelled])
     }
 }
-
-// MARK: - Helpers
 
 extension ThreeDSChallengeViewModelTests {
 

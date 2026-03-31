@@ -1,5 +1,5 @@
 import Foundation
-import Testing
+import XCTest
 
 @testable import CheckoutFlow
 
@@ -38,7 +38,8 @@ extension CheckoutFlowServiceProviderSpy {
 
     func assertExpectedInvocations(
         _ expectedCalls: MethodsKeys...,
-        sourceLocation: SourceLocation = #_sourceLocation
+        file: StaticString = #filePath,
+        line: UInt = #line
     ) {
         var checkoutFlowExpectedInvocations: [(CheckoutFlowProviderSpy.MethodKey, Int)] = []
 
@@ -49,10 +50,16 @@ extension CheckoutFlowServiceProviderSpy {
             }
         }
 
-        checkoutFlowProviderSpy.assertExpectedInvocations(
-            checkoutFlowExpectedInvocations,
-            sourceLocation: sourceLocation
-        )
+        for (methodKey, expectedCount) in checkoutFlowExpectedInvocations {
+            let actualCount = checkoutFlowProviderSpy.invocationsCount[methodKey, default: 0]
+            XCTAssertEqual(
+                actualCount,
+                expectedCount,
+                "Expected \(methodKey) to be called \(expectedCount) time(s), but was called \(actualCount) time(s).",
+                file: file,
+                line: line
+            )
+        }
     }
 
     func resetAllCounters() {

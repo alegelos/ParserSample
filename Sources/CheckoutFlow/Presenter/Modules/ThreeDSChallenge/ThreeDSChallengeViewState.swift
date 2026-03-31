@@ -1,7 +1,7 @@
 import Foundation
 
 struct ThreeDSChallengeViewState: Equatable {
-    
+
     let titleText: String
     let requestURL: URL
     let isLoading: Bool
@@ -10,11 +10,11 @@ struct ThreeDSChallengeViewState: Equatable {
     let errorMessage: String?
     let showsCloseButton: Bool
     let closeButtonTitle: String
-    
+
     var shouldShowLoadingOverlay: Bool {
         isLoading
     }
-    
+
     var shouldShowErrorView: Bool {
         errorMessage != nil
     }

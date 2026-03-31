@@ -25,7 +25,7 @@ struct CardFormErrorView: View {
                 .stroke(Color.red.opacity(0.18), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Error: \(message)")
+        .accessibilityLabel(CheckoutFlowLocalized.string("checkout.card_form.error.accessibility", message))
     }
 }
 

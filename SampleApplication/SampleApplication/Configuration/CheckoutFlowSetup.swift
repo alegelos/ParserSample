@@ -21,13 +21,13 @@ enum CheckoutFlowSetup {
             )
         }
     }
-
+    
     static var samplePayment: CheckoutFlowPaymentConfiguration {
         CheckoutFlowPaymentConfiguration(
             amountInMinorUnits: 6_540,
             currencyCode: "GBP",
-            successURL: URL(string: "parsersample://checkout/success")!,
-            failureURL: URL(string: "parsersample://checkout/failure")!,
+            successURL: URL(string: "https://example.com/payments/success")!,
+            failureURL: URL(string: "https://example.com/payments/fail")!,
             payButtonTitle: "Pay £65.40"
         )
     }

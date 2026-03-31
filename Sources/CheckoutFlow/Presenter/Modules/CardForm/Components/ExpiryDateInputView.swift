@@ -8,7 +8,7 @@ struct ExpiryDateInputView: View {
     
     init(
         expiryDateText: Binding<String>,
-        placeholderText: String = "MM/YY"
+        placeholderText: String = CheckoutFlowLocalized.string("checkout.card_form.expiry_date.placeholder")
     ) {
         self._expiryDateText = expiryDateText
         self.placeholderText = placeholderText
@@ -16,14 +16,14 @@ struct ExpiryDateInputView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Expiry Date")
+            Text(CheckoutFlowLocalized.string("checkout.card_form.expiry_date.title"))
                 .font(.footnote)
                 .fontWeight(.semibold)
             
             TextField(placeholderText, text: $expiryDateText)
                 .keyboardType(.numberPad)
                 .textContentType(.none)
-                .onChange(of: expiryDateText) { _, newValue in
+                .onChange(of: expiryDateText) { newValue in
                     expiryDateText = CardInputUtils.formatCardExpiryDateInput(from: newValue)
                 }
                 .padding(.horizontal, 12)

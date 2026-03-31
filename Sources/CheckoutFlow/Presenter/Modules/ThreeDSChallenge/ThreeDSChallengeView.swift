@@ -1,14 +1,13 @@
 import SwiftUI
-import Observation
 import WebKit
 
 struct ThreeDSChallengeView: View {
-    
-    @Bindable var viewModel: ThreeDSChallengeViewModel
-    
+
+    @ObservedObject var viewModel: ThreeDSChallengeViewModel
+
     var body: some View {
         let viewState = viewModel.viewState
-        
+
         ZStack {
             CheckoutThreeDSChallengeWebView(
                 requestURL: viewState.requestURL,
@@ -25,11 +24,11 @@ struct ThreeDSChallengeView: View {
                     viewModel.decideNavigationPolicy(for: url)
                 }
             )
-            
+
             if viewState.shouldShowLoadingOverlay {
                 loadingOverlayView(viewState: viewState)
             }
-            
+
             if viewState.shouldShowErrorView {
                 errorView(viewState: viewState)
             }
@@ -37,8 +36,8 @@ struct ThreeDSChallengeView: View {
         .navigationTitle(viewState.titleText)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if viewState.showsCloseButton {
-                ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if viewState.showsCloseButton {
                     Button(viewState.closeButtonTitle) {
                         viewModel.didTapCloseButton()
                     }
@@ -46,15 +45,15 @@ struct ThreeDSChallengeView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func loadingOverlayView(viewState: ThreeDSChallengeViewState) -> some View {
         VStack(spacing: 12) {
             ProgressView()
-            
+
             Text(viewState.loadingText)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
         }
         .padding(20)
         .background(
@@ -62,20 +61,20 @@ struct ThreeDSChallengeView: View {
                 .fill(Color(.systemBackground).opacity(0.95))
         )
     }
-    
+
     @ViewBuilder
     private func errorView(viewState: ThreeDSChallengeViewState) -> some View {
         VStack {
             Spacer()
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text(viewState.errorTitleText)
                     .font(.headline)
-                
+
                 if let errorMessage = viewState.errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -94,13 +93,13 @@ struct ThreeDSChallengeView: View {
 }
 
 private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
-    
+
     let requestURL: URL
     let didStartLoading: () -> Void
     let didFinishLoading: () -> Void
     let didFailLoading: (Error) -> Void
     let decideNavigationPolicy: (URL) -> Bool
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(
             didStartLoading: didStartLoading,
@@ -109,31 +108,32 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
             decideNavigationPolicy: decideNavigationPolicy
         )
     }
-    
+
     func makeUIView(context: Context) -> WKWebView {
         let webViewConfiguration = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: webViewConfiguration)
-        
+
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         
         let request = URLRequest(url: requestURL)
         webView.load(request)
-        
+
         return webView
     }
-    
+
     func updateUIView(_ webView: WKWebView, context: Context) { }
-    
-    @MainActor
+
     final class Coordinator: NSObject, WKNavigationDelegate {
-        
+
         private let didStartLoading: () -> Void
         private let didFinishLoading: () -> Void
         private let didFailLoading: (Error) -> Void
         private let decideNavigationPolicy: (URL) -> Bool
-        
+
+        private var hasResolvedCompletion = false
+
         init(
             didStartLoading: @escaping () -> Void,
             didFinishLoading: @escaping () -> Void,
@@ -145,21 +145,42 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
             self.didFailLoading = didFailLoading
             self.decideNavigationPolicy = decideNavigationPolicy
         }
-        
+
+        private func handlePossibleCompletionURL(_ url: URL?, in webView: WKWebView) -> Bool {
+            guard !hasResolvedCompletion else {
+                return false
+            }
+
+            guard let url = url else {
+                return true
+            }
+
+            let shouldAllowNavigation = decideNavigationPolicy(url)
+
+            if !shouldAllowNavigation {
+                hasResolvedCompletion = true
+                webView.stopLoading()
+            }
+
+            return shouldAllowNavigation
+        }
+
         func webView(
             _ webView: WKWebView,
             didStartProvisionalNavigation navigation: WKNavigation!
         ) {
             didStartLoading()
         }
-        
+
         func webView(
             _ webView: WKWebView,
             didFinish navigation: WKNavigation!
         ) {
-            didFinishLoading()
+            if handlePossibleCompletionURL(webView.url, in: webView) {
+                didFinishLoading()
+            }
         }
-        
+
         func webView(
             _ webView: WKWebView,
             didFail navigation: WKNavigation!,
@@ -167,7 +188,7 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
         ) {
             didFailLoading(error)
         }
-        
+
         func webView(
             _ webView: WKWebView,
             didFailProvisionalNavigation navigation: WKNavigation!,
@@ -178,24 +199,36 @@ private struct CheckoutThreeDSChallengeWebView: UIViewRepresentable {
 
         func webView(
             _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction
-        ) async -> WKNavigationActionPolicy {
-            guard let requestURL = navigationAction.request.url else {
-                return .cancel
-            }
-            
-            let shouldAllowNavigation = decideNavigationPolicy(requestURL)
-            return shouldAllowNavigation ? .allow : .cancel
+            didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!
+        ) {
+            _ = handlePossibleCompletionURL(webView.url, in: webView)
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+        ) {
+            let shouldAllowNavigation = handlePossibleCompletionURL(
+                navigationAction.request.url,
+                in: webView
+            )
+
+            decisionHandler(shouldAllowNavigation ? .allow : .cancel)
         }
     }
+    
 }
 
-#Preview {
-    NavigationStack {
-        ThreeDSChallengeView(
-            viewModel: ThreeDSChallengeViewModel(
-                requestURL: URL(string: "https://example.com")!
+struct ThreeDSChallengeView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+            ThreeDSChallengeView(
+                viewModel: ThreeDSChallengeViewModel(
+                    requestURL: URL(string: "https://example.com")!
+                )
             )
-        )
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }

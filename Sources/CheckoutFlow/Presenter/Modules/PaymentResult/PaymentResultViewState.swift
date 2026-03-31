@@ -9,10 +9,9 @@ struct PaymentResultViewState: Equatable {
     let secondaryButtonTitle: String?
     let statusImageName: String
     let appearance: PaymentResultViewState.CheckoutPaymentResultAppearance
-    
 }
 
-// MARK: - Helping Strucures
+// MARK: - Helping Structures
 
 extension PaymentResultViewState {
     
@@ -27,5 +26,4 @@ extension PaymentResultViewState {
         case failure
         case cancelled
     }
-    
 }

@@ -58,7 +58,7 @@ enum CardSchemeMapper {
     private static func fallbackDisplayName(from schemeName: String?) -> String {
         guard let schemeName,
               schemeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
-            return "Card"
+            return CheckoutFlowLocalized.string("checkout.card_scheme.fallback_display_name")
         }
         
         return schemeName

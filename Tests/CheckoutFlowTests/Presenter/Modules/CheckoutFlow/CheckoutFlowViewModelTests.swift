@@ -1,30 +1,30 @@
 import Foundation
-import Testing
+import XCTest
 
 @testable import CheckoutFlow
 
-@Suite(.serialized)
-struct CheckoutFlowViewModelTests {
+final class CheckoutFlowViewModelTests: XCTestCase {
 
-    let stubPaymentFlowProvider: StubPaymentFlowProvider
-    let checkoutFlowServiceProviderSpy: CheckoutFlowServiceProviderSpy
+    private var stubPaymentFlowProvider: StubPaymentFlowProvider!
+    private var checkoutFlowServiceProviderSpy: CheckoutFlowServiceProviderSpy!
 
-    init() {
+    override func setUp() {
+        super.setUp()
         let stubPaymentFlowProvider = StubPaymentFlowProvider()
         self.stubPaymentFlowProvider = stubPaymentFlowProvider
         self.checkoutFlowServiceProviderSpy = CheckoutFlowServiceProviderSpy(
             cardPaymentFlowProvider: stubPaymentFlowProvider
         )
     }
-}
 
-// MARK: - Initialization
-
-extension CheckoutFlowViewModelTests {
+    override func tearDown() {
+        stubPaymentFlowProvider = nil
+        checkoutFlowServiceProviderSpy = nil
+        super.tearDown()
+    }
 
     @MainActor
-    @Test
-    func init_startsAtCardForm_andBuildsCardFormViewModel() {
+    func test_init_startsAtCardForm_andBuildsCardFormViewModel() {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -34,23 +34,15 @@ extension CheckoutFlowViewModelTests {
         )
 
         // Then
-        #expect(checkoutFlowViewModel.currentStep == .cardForm)
-        #expect(checkoutFlowViewModel.viewState == CheckoutFlowViewState(currentStep: .cardForm))
-        #expect(checkoutFlowViewModel.viewState.isShowingCardForm)
-        #expect(checkoutFlowViewModel.cardFormViewModel != nil)
-        #expect(checkoutFlowViewModel.threeDSChallengeViewModel == nil)
-        #expect(checkoutFlowViewModel.paymentResultViewModel == nil)
-        #expect(checkoutFlowViewModel.cardFormViewModel.payButtonTitle == "Pay €10.99")
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .cardForm)
+        XCTAssertNotNil(checkoutFlowViewModel.cardFormViewModel)
+        XCTAssertNil(checkoutFlowViewModel.threeDSChallengeViewModel)
+        XCTAssertNil(checkoutFlowViewModel.paymentResultViewModel)
+        XCTAssertEqual(checkoutFlowViewModel.cardFormViewModel.payButtonTitle, "Pay €10.99")
     }
-}
-
-// MARK: - Flow
-
-extension CheckoutFlowViewModelTests {
 
     @MainActor
-    @Test
-    func submitCardForm_whenPaymentRequiresThreeDS_movesToThreeDSChallenge_andCallsProviderMethods() async {
+    func test_submitCardForm_whenPaymentRequiresThreeDS_movesToThreeDSChallenge_andCallsProviderMethods() async {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -75,12 +67,16 @@ extension CheckoutFlowViewModelTests {
             .checkoutFlow(.tokenizeCard, .createPayment)
         )
 
-        #expect(checkoutFlowViewModel.currentStep == .threeDSChallenge)
-        #expect(checkoutFlowViewModel.threeDSChallengeViewModel?.requestURL == URL(string: "https://gateway.example.com/3ds")!)
-        #expect(checkoutFlowViewModel.paymentResultViewModel == nil)
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .threeDSChallenge)
+        XCTAssertEqual(
+            checkoutFlowViewModel.threeDSChallengeViewModel?.requestURL,
+            URL(string: "https://gateway.example.com/3ds")!
+        )
+        XCTAssertNil(checkoutFlowViewModel.paymentResultViewModel)
 
-        #expect(
-            stubPaymentFlowProvider.receivedCardPayment == CardPayment(
+        XCTAssertEqual(
+            stubPaymentFlowProvider.receivedCardPayment,
+            CardPayment(
                 paymentToken: PaymentToken(value: "payment_token_123"),
                 amountInMinorUnits: 1_099,
                 currencyCode: "EUR",
@@ -91,8 +87,7 @@ extension CheckoutFlowViewModelTests {
     }
 
     @MainActor
-    @Test
-    func threeDSNavigationMatchingBySchemeHostAndPath_showsSuccessResult_andPrimaryActionCompletesSuccessfully() async {
+    func test_threeDSNavigationMatchingBySchemeHostAndPath_showsSuccessResult_andPrimaryActionCompletesSuccessfully() async {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -117,20 +112,19 @@ extension CheckoutFlowViewModelTests {
             .decideNavigationPolicy(for: URL(string: "myapp://checkout/success?session_id=123")!)
 
         // Then
-        #expect(shouldAllowNavigation == false)
-        #expect(checkoutFlowViewModel.currentStep == .paymentResult)
-        #expect(checkoutFlowViewModel.paymentResultViewModel?.viewState.status == .success)
+        XCTAssertEqual(shouldAllowNavigation, false)
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .paymentResult)
+        XCTAssertEqual(checkoutFlowViewModel.paymentResultViewModel?.viewState.status, .success)
 
         // When
         checkoutFlowViewModel.paymentResultViewModel?.didTapPrimaryButton()
 
         // Then
-        #expect(checkoutCompletionSpy.recordedCompletions == [.completedSuccessfully])
+        XCTAssertEqual(checkoutCompletionSpy.recordedCompletions, [.completedSuccessfully])
     }
 
     @MainActor
-    @Test
-    func threeDSFailureNavigation_showsFailureResult_andSecondaryActionCompletesWithNilMessage() async {
+    func test_threeDSFailureNavigation_showsFailureResult_andSecondaryActionCompletesWithNilMessage() async {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -155,24 +149,23 @@ extension CheckoutFlowViewModelTests {
             .decideNavigationPolicy(for: URL(string: "myapp://checkout/failure")!)
 
         // Then
-        #expect(shouldAllowNavigation == false)
-        #expect(checkoutFlowViewModel.currentStep == .paymentResult)
-        #expect(checkoutFlowViewModel.paymentResultViewModel?.viewState.status == .failure)
-        #expect(
-            checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText
-                == "We could not complete your payment. Please try again."
+        XCTAssertEqual(shouldAllowNavigation, false)
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .paymentResult)
+        XCTAssertEqual(checkoutFlowViewModel.paymentResultViewModel?.viewState.status, .failure)
+        XCTAssertEqual(
+            checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText,
+            "We could not complete your payment. Please try again."
         )
 
         // When
         checkoutFlowViewModel.paymentResultViewModel?.didTapSecondaryButton()
 
         // Then
-        #expect(checkoutCompletionSpy.recordedCompletions == [.completedWithFailure(message: nil)])
+        XCTAssertEqual(checkoutCompletionSpy.recordedCompletions, [.completedWithFailure(message: nil)])
     }
 
     @MainActor
-    @Test
-    func cancelledThreeDS_showsCancelledResult_andPrimaryActionCompletesCancelled() async {
+    func test_cancelledThreeDS_showsCancelledResult_andPrimaryActionCompletesCancelled() async {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -195,19 +188,18 @@ extension CheckoutFlowViewModelTests {
         checkoutFlowViewModel.threeDSChallengeViewModel?.didTapCloseButton()
 
         // Then
-        #expect(checkoutFlowViewModel.currentStep == .paymentResult)
-        #expect(checkoutFlowViewModel.paymentResultViewModel?.viewState.status == .cancelled)
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .paymentResult)
+        XCTAssertEqual(checkoutFlowViewModel.paymentResultViewModel?.viewState.status, .cancelled)
 
         // When
         checkoutFlowViewModel.paymentResultViewModel?.didTapPrimaryButton()
 
         // Then
-        #expect(checkoutCompletionSpy.recordedCompletions == [.cancelled])
+        XCTAssertEqual(checkoutCompletionSpy.recordedCompletions, [.cancelled])
     }
 
     @MainActor
-    @Test
-    func createPaymentFailure_showsMappedFailureResult_andPrimaryActionResetsToCardForm() async {
+    func test_createPaymentFailure_showsMappedFailureResult_andPrimaryActionResetsToCardForm() async {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -235,23 +227,22 @@ extension CheckoutFlowViewModelTests {
             .checkoutFlow(.tokenizeCard, .createPayment)
         )
 
-        #expect(checkoutFlowViewModel.currentStep == .paymentResult)
-        #expect(checkoutFlowViewModel.paymentResultViewModel?.viewState.status == .failure)
-        #expect(checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText == "Mapped create payment error")
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .paymentResult)
+        XCTAssertEqual(checkoutFlowViewModel.paymentResultViewModel?.viewState.status, .failure)
+        XCTAssertEqual(checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText, "Mapped create payment error")
 
         // When
         checkoutFlowViewModel.paymentResultViewModel?.didTapPrimaryButton()
 
         // Then
-        #expect(checkoutFlowViewModel.currentStep == .cardForm)
-        #expect(checkoutFlowViewModel.threeDSChallengeViewModel == nil)
-        #expect(checkoutFlowViewModel.paymentResultViewModel == nil)
-        #expect(checkoutCompletionSpy.recordedCompletions.isEmpty)
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .cardForm)
+        XCTAssertNil(checkoutFlowViewModel.threeDSChallengeViewModel)
+        XCTAssertNil(checkoutFlowViewModel.paymentResultViewModel)
+        XCTAssertTrue(checkoutCompletionSpy.recordedCompletions.isEmpty)
     }
 
     @MainActor
-    @Test
-    func pendingPaymentWithoutRedirect_showsFailureResult() async {
+    func test_pendingPaymentWithoutRedirect_showsFailureResult() async {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -272,16 +263,15 @@ extension CheckoutFlowViewModelTests {
         await waitForFlowToAdvance()
 
         // Then
-        #expect(checkoutFlowViewModel.currentStep == .paymentResult)
-        #expect(
-            checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText
-                == "The payment requires authentication, but no redirect URL was provided."
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .paymentResult)
+        XCTAssertEqual(
+            checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText,
+            "The payment requires authentication, but no redirect URL was provided."
         )
     }
 
     @MainActor
-    @Test
-    func unknownPaymentStatus_showsFailureResult() async {
+    func test_unknownPaymentStatus_showsFailureResult() async {
         // Given
         let checkoutCompletionSpy = CheckoutCompletionSpy()
 
@@ -302,15 +292,13 @@ extension CheckoutFlowViewModelTests {
         await waitForFlowToAdvance()
 
         // Then
-        #expect(checkoutFlowViewModel.currentStep == .paymentResult)
-        #expect(
-            checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText
-                == "Unsupported payment status: authorized"
+        XCTAssertEqual(checkoutFlowViewModel.currentStep, .paymentResult)
+        XCTAssertEqual(
+            checkoutFlowViewModel.paymentResultViewModel?.viewState.messageText,
+            "Unsupported payment status: authorized"
         )
     }
 }
-
-// MARK: - Helpers
 
 extension CheckoutFlowViewModelTests {
 

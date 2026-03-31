@@ -1,9 +1,8 @@
 import SwiftUI
-import Observation
 
 struct PaymentResultView: View {
     
-    @Bindable var viewModel: PaymentResultViewModel
+    @ObservedObject var viewModel: PaymentResultViewModel
     
     var body: some View {
         let viewState = viewModel.viewState
@@ -13,7 +12,7 @@ struct PaymentResultView: View {
             
             Image(systemName: viewState.statusImageName)
                 .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(statusColor(for: viewState.appearance))
+                .foregroundColor(statusColor(for: viewState.appearance))
             
             VStack(spacing: 8) {
                 Text(viewState.titleText)
@@ -23,7 +22,7 @@ struct PaymentResultView: View {
                 
                 Text(viewState.messageText)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
             
@@ -33,15 +32,16 @@ struct PaymentResultView: View {
                 }) {
                     Text(viewState.primaryButtonTitle)
                         .fontWeight(.semibold)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(primaryButtonColor(for: viewState.appearance))
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(.white)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(primaryButtonColor(for: viewState.appearance))
-                )
                 
                 if let secondaryButtonTitle = viewState.secondaryButtonTitle {
                     Button(action: {
@@ -49,19 +49,20 @@ struct PaymentResultView: View {
                     }) {
                         Text(secondaryButtonTitle)
                             .fontWeight(.semibold)
+                            .foregroundColor(.primary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.secondarySystemBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(.separator).opacity(0.25), lineWidth: 1)
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.primary)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(.separator).opacity(0.25), lineWidth: 1)
-                    )
                 }
             }
             
@@ -71,7 +72,9 @@ struct PaymentResultView: View {
         .navigationBarBackButtonHidden(true)
     }
     
-    private func statusColor(for appearance: PaymentResultViewState.CheckoutPaymentResultAppearance) -> Color {
+    private func statusColor(
+        for appearance: PaymentResultViewState.CheckoutPaymentResultAppearance
+    ) -> Color {
         switch appearance {
         case .success:
             return .green
@@ -82,7 +85,9 @@ struct PaymentResultView: View {
         }
     }
     
-    private func primaryButtonColor(for appearance: PaymentResultViewState.CheckoutPaymentResultAppearance) -> Color {
+    private func primaryButtonColor(
+        for appearance: PaymentResultViewState.CheckoutPaymentResultAppearance
+    ) -> Color {
         switch appearance {
         case .success:
             return .green

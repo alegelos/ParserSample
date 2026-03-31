@@ -2,21 +2,21 @@
 
 `CheckoutFlow` is a Swift Package that provides a ready-to-present SwiftUI card payment flow.
 
-The SDK owns the UI flow internally:
+The package owns the checkout flow internally:
 - card form
 - card tokenization
 - payment creation
 - 3D Secure challenge
-- final result screen
+- final native result screen
 
-From the host app perspective, the integration surface is intentionally small:
-- initialize the SDK once with `CheckoutFlowModule.create(...)`
-- create a `CheckoutFlowView` whenever you want to present a payment flow
-- react to the final `CheckoutFlowCompletionResult`
+The intended host-app integration surface is small:
+- create the shared module with `CheckoutFlowModule.create(...)`
+- build a `CheckoutFlowView` for each payment attempt
+- handle the final `CheckoutFlowCompletionResult`
 
 ## Requirements
 
-- iOS 18+
+- iOS 15+
 - Swift 6.2
 
 ## Installation
@@ -25,7 +25,13 @@ Add the package with Swift Package Manager.
 
 ### Xcode
 
-Use **File > Add Package Dependencies...** > https://github.com/alegelos/ParserSample
+Use **File > Add Package Dependencies...** and add this repository:
+
+```text
+https://github.com/alegelos/ParserSample
+```
+
+Then add the `CheckoutFlow` library product to your app target.
 
 ### Package.swift
 
@@ -33,31 +39,32 @@ Use **File > Add Package Dependencies...** > https://github.com/alegelos/ParserS
 .package(url: "https://github.com/alegelos/ParserSample", from: "1.0.3")
 ```
 
-Then add the product to your target:
+Then add the product to your target dependencies:
 
 ```swift
-.product(name: "CheckoutFlow", package: "CheckoutFlow")
+.product(name: "CheckoutFlow", package: "ParserSample")
 ```
 
-## Public API
+## Recommended integration surface
 
-The SDK is currently designed to be consumed through these public types:
+For a normal SwiftUI integration, these are the types you should care about first:
 
 - `CheckoutFlowModule`
 - `CheckoutFlowConfiguration`
 - `CheckoutFlowPaymentConfiguration`
 - `CheckoutFlowView`
 - `CheckoutFlowCompletionResult`
+- `CheckoutFlowError`
 
-The internal view models and internal flow steps are implementation details and are not part of the integration contract.
+The package also exposes some domain models publicly, but the normal host-app integration does not need to construct or coordinate the internal flow manually.
 
-## Integration Overview
+## Integration overview
 
-The integration has two distinct phases:
+The integration has two phases.
 
-### 1. Bootstrap the SDK once
+### 1. Bootstrap the shared module
 
-Use `CheckoutFlowModule.create(...)` once during app startup, feature bootstrap, or before the first checkout is shown.
+Create the shared module before the first checkout view is presented.
 
 ```swift
 import CheckoutFlow
@@ -71,11 +78,11 @@ let checkoutConfiguration = CheckoutFlowConfiguration(
 CheckoutFlowModule.create(configuration: checkoutConfiguration)
 ```
 
-This stores a shared module instance used later by `CheckoutFlowView`.
+`create(...)` replaces the current shared instance, so it can also be used again if you intentionally want to swap environments or rebuild the module.
 
-### 2. Present a payment flow whenever needed
+### 2. Present a payment flow when needed
 
-Each payment attempt is configured with a `CheckoutFlowPaymentConfiguration`.
+Each checkout attempt is described by `CheckoutFlowPaymentConfiguration`.
 
 ```swift
 import CheckoutFlow
@@ -84,140 +91,38 @@ import SwiftUI
 struct PaymentScreen: View {
 
     var body: some View {
-        try? CheckoutFlowView(
-            paymentConfiguration: CheckoutFlowPaymentConfiguration(
-                amountInMinorUnits: 1_099,
-                currencyCode: "EUR",
-                successURL: URL(string: "myapp://checkout/success")!,
-                failureURL: URL(string: "myapp://checkout/failure")!,
-                payButtonTitle: "Pay €10.99"
-            ),
-            onComplete: { result in
-                switch result {
-                case .completedSuccessfully:
-                    print("Payment succeeded")
+        Group {
+            if let checkoutFlowView = try? CheckoutFlowView(
+                paymentConfiguration: CheckoutFlowPaymentConfiguration(
+                    amountInMinorUnits: 1_099,
+                    currencyCode: "EUR",
+                    successURL: URL(string: "myapp://checkout/success")!,
+                    failureURL: URL(string: "myapp://checkout/failure")!,
+                    payButtonTitle: "Pay €10.99"
+                ),
+                onComplete: { result in
+                    switch result {
+                    case .completedSuccessfully:
+                        print("Payment succeeded")
 
-                case .completedWithFailure(let message):
-                    print("Payment failed: \(message ?? \"Unknown error\")")
+                    case .completedWithFailure(let message):
+                        print("Payment failed: \(message ?? \"Unknown error\")")
 
-                case .cancelled:
-                    print("Payment cancelled")
+                    case .cancelled:
+                        print("Payment cancelled")
+                    }
                 }
+            ) {
+                checkoutFlowView
+            } else {
+                Text("Checkout could not be initialized.")
             }
-        )
+        }
     }
 }
 ```
 
-## Recommended App Lifecycle
-
-A typical lifecycle looks like this:
-
-1. create the module once with API configuration
-2. show `CheckoutFlowView` for a specific payment
-3. receive the completion callback
-4. show `CheckoutFlowView` again later with a different `CheckoutFlowPaymentConfiguration` if needed
-
-You do **not** need to recreate the module for every payment attempt as long as the SDK configuration stays the same.
-
-## Configuration Types
-
-### CheckoutFlowConfiguration
-
-Defines the SDK-wide setup used by the shared module.
-
-```swift
-public struct CheckoutFlowConfiguration: Sendable, Equatable {
-    public let baseURL: URL
-    public let publicAPIKey: String
-    public let secretAPIKey: String
-}
-```
-
-#### Fields
-
-- `baseURL`: Checkout API base URL
-- `publicAPIKey`: used by the tokenization request
-- `secretAPIKey`: used by the payment request
-
-## Important
-
-In the current SDK implementation, both tokenization and payment creation are performed by the package itself, so both keys are required by `CheckoutFlowConfiguration`.
-
-### CheckoutFlowPaymentConfiguration
-
-Defines the data for one specific checkout attempt.
-
-```swift
-public struct CheckoutFlowPaymentConfiguration: Sendable, Equatable {
-    public let amountInMinorUnits: Int
-    public let currencyCode: String
-    public let successURL: URL
-    public let failureURL: URL
-    public let payButtonTitle: String
-}
-```
-
-#### Fields
-
-- `amountInMinorUnits`: payment amount in minor units
-- `currencyCode`: ISO currency code such as `EUR` or `GBP`
-- `successURL`: callback URL that marks the 3DS flow as successful
-- `failureURL`: callback URL that marks the 3DS flow as failed
-- `payButtonTitle`: button label shown in the card form
-
-## Completion Callback
-
-`CheckoutFlowView` finishes through the `onComplete` closure.
-
-```swift
-public enum CheckoutFlowCompletionResult: Equatable, Sendable {
-    case completedSuccessfully
-    case completedWithFailure(message: String?)
-    case cancelled
-}
-```
-
-### Meanings
-
-- `completedSuccessfully`: the payment flow reached the configured success callback
-- `completedWithFailure(message:)`: the flow failed during submission or reached the configured failure callback
-- `cancelled`: the user closed the 3DS challenge before completing it
-
-## 3DS Callback URL Handling
-
-During the 3DS challenge, the SDK monitors web navigation and compares navigated URLs against the configured `successURL` and `failureURL`.
-
-A navigation is considered a match when either:
-- the full absolute URL matches exactly, or
-- the scheme, host, and path match
-
-That means these callback URLs should be stable and uniquely identify the success and failure outcomes for your app.
-
-## Error Mapping
-
-You can customize the message shown when submission fails by passing `mapSubmitErrorMessage` to `CheckoutFlowView`.
-
-```swift
-try CheckoutFlowView(
-    paymentConfiguration: paymentConfiguration,
-    mapSubmitErrorMessage: { error in
-        // Convert technical errors into user-facing copy
-        return "We couldn't process your payment. Please try again."
-    },
-    onComplete: { result in
-        // Handle final outcome
-    }
-)
-```
-
-This closure is used for:
-- tokenization failures
-- payment creation failures
-
-If you do not provide a mapper, the SDK falls back to its default user-facing messages.
-
-## Module Lifecycle
+## Module lifecycle
 
 ### Create
 
@@ -233,14 +138,115 @@ Creates or replaces the shared module instance.
 CheckoutFlowModule.destroy()
 ```
 
-Resets the shared module instance.
+Clears the shared module instance.
 
-This is mainly useful when you want to explicitly clear SDK state, for example:
+Useful for:
 - logout flows
-- test setup and teardown
+- tests
 - environment switching
 
-## Initialization Error
+## Configuration types
+
+### CheckoutFlowConfiguration
+
+Defines SDK-wide configuration used by the shared module.
+
+```swift
+public struct CheckoutFlowConfiguration: Sendable, Equatable {
+    public let baseURL: URL
+    public let publicAPIKey: String
+    public let secretAPIKey: String
+}
+```
+
+#### Fields
+
+- `baseURL`: Checkout API base URL
+- `publicAPIKey`: used for card tokenization
+- `secretAPIKey`: used for payment creation
+
+### CheckoutFlowPaymentConfiguration
+
+Defines one checkout attempt.
+
+```swift
+public struct CheckoutFlowPaymentConfiguration: Sendable, Equatable {
+    public let amountInMinorUnits: Int
+    public let currencyCode: String
+    public let successURL: URL
+    public let failureURL: URL
+    public let payButtonTitle: String
+}
+```
+
+#### Fields
+
+- `amountInMinorUnits`: payment amount in minor units
+- `currencyCode`: ISO currency code such as `EUR` or `GBP`
+- `successURL`: callback URL treated as a successful 3DS completion
+- `failureURL`: callback URL treated as a failed 3DS completion
+- `payButtonTitle`: button label shown in the card form
+
+## Completion callback
+
+`CheckoutFlowView` finishes through the `onComplete` closure.
+
+```swift
+public enum CheckoutFlowCompletionResult: Equatable, Sendable {
+    case completedSuccessfully
+    case completedWithFailure(message: String?)
+    case cancelled
+}
+```
+
+### Meanings
+
+- `completedSuccessfully`: the flow reached the configured success callback URL
+- `completedWithFailure(message:)`: the flow failed before completion or reached the configured failure callback URL
+- `cancelled`: the user closed the 3DS challenge flow
+
+## Current flow behavior
+
+The current implementation expects payment creation to return a `pending` status with a redirect URL for 3DS authentication.
+
+More specifically:
+- `pending` + redirect URL -> moves to the 3DS web challenge
+- `pending` without redirect URL -> shows a failure result
+- any unsupported payment status -> shows a failure result
+
+## 3DS callback URL matching
+
+During the 3DS challenge, the SDK monitors web navigation and compares navigated URLs against the configured `successURL` and `failureURL`.
+
+A navigation is considered a match when either:
+- the full absolute URL matches exactly, or
+- the scheme, host, and path match
+
+That lets the flow work with custom URL schemes and with standard HTTPS callback URLs, as long as they remain stable and uniquely identify success and failure.
+
+## Error mapping
+
+You can customize the user-facing message used for submission-stage failures by passing `mapSubmitErrorMessage` to `CheckoutFlowView`.
+
+```swift
+try CheckoutFlowView(
+    paymentConfiguration: paymentConfiguration,
+    mapSubmitErrorMessage: { error in
+        return "We couldn't process your payment. Please try again."
+    },
+    onComplete: { result in
+        // Handle final outcome
+    }
+)
+```
+
+This mapper is currently used for:
+- tokenization failures
+- payment creation failures
+
+It is not used for 3DS success or failure callback matches themselves.
+
+## Initialization error
 
 `CheckoutFlowView` depends on the shared module created by `CheckoutFlowModule.create(...)`.
 
@@ -252,13 +258,11 @@ public enum CheckoutFlowError: LocalizedError, Equatable {
 }
 ```
 
-Make sure module creation happens before the first checkout view is presented.
-
-## Custom Networking Session
+## Custom networking session
 
 The SDK uses `URLSession.shared` by default.
 
-You can inject a custom session when bootstrapping the module:
+You can inject a custom session when creating the shared module:
 
 ```swift
 import CheckoutFlow
@@ -270,15 +274,14 @@ CheckoutFlowModule.create(
 )
 ```
 
-Use this when you need custom networking behavior such as:
+Use this when you need:
 - test doubles
 - request interception
 - custom transport configuration
 
-
 ## Notes
 
-- `CheckoutFlowView` already wraps its content in a `NavigationStack`
-- the SDK is SwiftUI-first
-- payment-specific input such as amount, currency, and callback URLs belongs in `CheckoutFlowPaymentConfiguration`
-- SDK-wide setup such as API keys and base URL belongs in `CheckoutFlowConfiguration`
+- `CheckoutFlowView` currently wraps its content in a `NavigationView` and applies `StackNavigationViewStyle()` for iOS 15 compatibility.
+- The SDK is SwiftUI-first.
+- Payment-specific values such as amount, currency, and callback URLs belong in `CheckoutFlowPaymentConfiguration`.
+- SDK-wide values such as API keys and base URL belong in `CheckoutFlowConfiguration`.

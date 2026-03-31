@@ -8,7 +8,7 @@ struct PayButtonView: View {
     let action: () -> Void
     
     init(
-        title: String = "Pay",
+        title: String = CheckoutFlowLocalized.string("checkout.card_form.pay_button_title"),
         isEnabled: Bool = true,
         isLoading: Bool = false,
         action: @escaping () -> Void
@@ -27,20 +27,21 @@ struct PayButtonView: View {
                         .progressViewStyle(.circular)
                 }
                 
-                Text(isLoading ? "Processing..." : title)
+                Text(isLoading ? CheckoutFlowLocalized.string("checkout.card_form.loading_message") : title)
                     .fontWeight(.semibold)
             }
+            .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isEnabled && !isLoading ? Color.blue : Color.gray.opacity(0.6))
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
-        .foregroundColor(.white)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isEnabled && !isLoading ? Color.blue : Color.gray.opacity(0.6))
-        )
         .disabled(!isEnabled || isLoading)
-        .accessibilityLabel(isLoading ? "Processing payment" : title)
+        .accessibilityLabel(isLoading ? CheckoutFlowLocalized.string("checkout.card_form.loading_title") : title)
     }
 }
 

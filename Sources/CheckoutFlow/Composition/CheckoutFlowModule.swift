@@ -7,7 +7,7 @@ public enum CheckoutFlowError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .moduleNotInitialized:
-            return "CheckoutFlowModule.create(...) must be called before presenting CheckoutFlowView."
+            return CheckoutFlowLocalized.string("checkout.error.module_not_initialized")
         }
     }
 }

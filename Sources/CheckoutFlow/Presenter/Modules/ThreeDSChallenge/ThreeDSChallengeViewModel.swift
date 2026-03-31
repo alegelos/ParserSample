@@ -1,9 +1,8 @@
 import Foundation
-import Observation
+import WebKit
 
 @MainActor
-@Observable
-final class ThreeDSChallengeViewModel {
+final class ThreeDSChallengeViewModel: ObservableObject {
     
     let requestURL: URL
     let titleText: String
@@ -12,8 +11,8 @@ final class ThreeDSChallengeViewModel {
     let errorTitleText: String
     let closeButtonTitle: String
     
-    var isLoading: Bool
-    var errorMessage: String?
+    @Published var isLoading: Bool
+    @Published var errorMessage: String?
     
     var viewState: ThreeDSChallengeViewState {
         ThreeDSChallengeViewState(
@@ -28,19 +27,16 @@ final class ThreeDSChallengeViewModel {
         )
     }
     
-    @ObservationIgnored
     private let navigationActionResolver: (URL) -> ThreeDSChallengeNavigationAction
-    
-    @ObservationIgnored
     private let onCompletion: ((ThreeDSChallengeCompletion) -> Void)?
     
     init(
         requestURL: URL,
-        titleText: String = "3D Secure",
+        titleText: String = CheckoutFlowLocalized.string("checkout.three_ds.title"),
         showsCloseButton: Bool = true,
-        loadingText: String = "Loading authentication…",
-        errorTitleText: String = "Authentication Error",
-        closeButtonTitle: String = "Close",
+        loadingText: String = CheckoutFlowLocalized.string("checkout.three_ds.loading_message"),
+        errorTitleText: String = CheckoutFlowLocalized.string("checkout.three_ds.error.title"),
+        closeButtonTitle: String = CheckoutFlowLocalized.string("checkout.three_ds.close_button"),
         navigationActionResolver: @escaping (URL) -> ThreeDSChallengeNavigationAction = { _ in .allow },
         onCompletion: ((ThreeDSChallengeCompletion) -> Void)? = nil
     ) {
@@ -66,15 +62,15 @@ final class ThreeDSChallengeViewModel {
     }
     
     func didFailLoading(with error: Error) {
+
         let nsError = error as NSError
         
-        if nsError.domain == NSURLErrorDomain,
-           nsError.code == NSURLErrorCancelled {
+        if shouldIgnoreWebViewError(nsError) {
             return
         }
         
         isLoading = false
-        errorMessage = "Unable to load the authentication page. Please try again."
+        errorMessage = CheckoutFlowLocalized.string("checkout.three_ds.error.message")
     }
     
     func decideNavigationPolicy(for url: URL) -> Bool {
@@ -102,10 +98,30 @@ final class ThreeDSChallengeViewModel {
     
 }
 
+// MARK: - Private
+
+extension ThreeDSChallengeViewModel {
+
+    private func shouldIgnoreWebViewError(_ error: NSError) -> Bool {
+        if error.domain == NSURLErrorDomain,
+           error.code == NSURLErrorCancelled {
+            return true
+        }
+
+        if error.domain == WebViewErrorConstants.webKitErrorDomain,
+               error.code == WebViewErrorConstants.frameLoadInterruptedByPolicyChangeErrorCode {
+                return true
+        }
+
+        return false
+    }
+    
+}
+
 // MARK: - Helping Structures
 
 extension ThreeDSChallengeViewModel {
-    
+
     enum ThreeDSChallengeCompletion: Equatable {
         case success
         case failure(message: String?)
@@ -117,6 +133,11 @@ extension ThreeDSChallengeViewModel {
         case finishSuccess
         case finishFailure(message: String?)
         case finishCancelled
+    }
+    
+    enum WebViewErrorConstants {
+        static let webKitErrorDomain = "WebKitErrorDomain"
+        static let frameLoadInterruptedByPolicyChangeErrorCode = 102
     }
     
 }

@@ -1,54 +1,30 @@
 import Foundation
-import Testing
+import XCTest
 
 @testable import CheckoutFlow
 
-@Suite(.serialized)
-struct CardFormViewModelTests {
+final class CardFormViewModelTests: XCTestCase {
 
-    let stubPaymentFlowProvider: StubPaymentFlowProvider
-    let checkoutFlowServiceProviderSpy: CheckoutFlowServiceProviderSpy
+    private var stubPaymentFlowProvider: StubPaymentFlowProvider!
+    private var checkoutFlowServiceProviderSpy: CheckoutFlowServiceProviderSpy!
 
-    init() {
+    override func setUp() {
+        super.setUp()
         let stubPaymentFlowProvider = StubPaymentFlowProvider()
         self.stubPaymentFlowProvider = stubPaymentFlowProvider
         self.checkoutFlowServiceProviderSpy = CheckoutFlowServiceProviderSpy(
             cardPaymentFlowProvider: stubPaymentFlowProvider
         )
     }
-}
 
-// MARK: - View state
-
-extension CardFormViewModelTests {
-
-    @MainActor
-    @Test
-    func init_buildsExpectedDefaultViewState() {
-        // Given
-        let cardFormViewModel = CardFormViewModel(
-            payButtonTitle: "Pay €10.99",
-            paymentFlowProvider: checkoutFlowServiceProviderSpy
-        )
-
-        // Then
-        #expect(
-            cardFormViewModel.viewState == CardFormViewState(
-                cardNumberText: "",
-                expiryDateText: "",
-                cvvText: "",
-                detectedSchemeName: nil,
-                errorMessage: nil,
-                isLoading: false,
-                isPayButtonEnabled: false,
-                payButtonTitle: "Pay €10.99"
-            )
-        )
+    override func tearDown() {
+        stubPaymentFlowProvider = nil
+        checkoutFlowServiceProviderSpy = nil
+        super.tearDown()
     }
 
     @MainActor
-    @Test
-    func cardNumberText_detectsVisaScheme() {
+    func test_cardNumberText_detectsVisaScheme() {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -58,12 +34,11 @@ extension CardFormViewModelTests {
         cardFormViewModel.cardNumberText = "4111 1111 1111 1111"
 
         // Then
-        #expect(cardFormViewModel.detectedSchemeName == "visa")
+        XCTAssertEqual(cardFormViewModel.detectedSchemeName, "visa")
     }
 
     @MainActor
-    @Test
-    func cardNumberText_detectsMastercardTwoSeriesScheme() {
+    func test_cardNumberText_detectsMastercardTwoSeriesScheme() {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -73,12 +48,11 @@ extension CardFormViewModelTests {
         cardFormViewModel.cardNumberText = "2221 0000 0000 0009"
 
         // Then
-        #expect(cardFormViewModel.detectedSchemeName == "mastercard")
+        XCTAssertEqual(cardFormViewModel.detectedSchemeName, "mastercard")
     }
 
     @MainActor
-    @Test
-    func cardNumberText_detectsAmexScheme() {
+    func test_cardNumberText_detectsAmexScheme() {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -88,12 +62,11 @@ extension CardFormViewModelTests {
         cardFormViewModel.cardNumberText = "378282246310005"
 
         // Then
-        #expect(cardFormViewModel.detectedSchemeName == "amex")
+        XCTAssertEqual(cardFormViewModel.detectedSchemeName, "amex")
     }
 
     @MainActor
-    @Test
-    func isPayButtonEnabled_isTrueForValidSanitizedInput() {
+    func test_isPayButtonEnabled_isTrueForValidSanitizedInput() {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -105,13 +78,11 @@ extension CardFormViewModelTests {
         cardFormViewModel.cvvText = "123"
 
         // Then
-        #expect(cardFormViewModel.isPayButtonEnabled)
-        #expect(cardFormViewModel.viewState.isPayButtonEnabled)
+        XCTAssertTrue(cardFormViewModel.isPayButtonEnabled)
     }
 
     @MainActor
-    @Test
-    func editingField_clearsExistingErrorMessage() {
+    func test_editingField_clearsExistingErrorMessage() {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -122,17 +93,11 @@ extension CardFormViewModelTests {
         cardFormViewModel.cardNumberText = "4"
 
         // Then
-        #expect(cardFormViewModel.errorMessage == nil)
+        XCTAssertNil(cardFormViewModel.errorMessage)
     }
-}
-
-// MARK: - submit()
-
-extension CardFormViewModelTests {
 
     @MainActor
-    @Test
-    func submit_whenFormIsInvalid_setsValidationError_andDoesNotCallProvider() async {
+    func test_submit_whenFormIsInvalid_setsValidationError_andDoesNotCallProvider() async {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -142,14 +107,13 @@ extension CardFormViewModelTests {
         await cardFormViewModel.submit()
 
         // Then
-        #expect(cardFormViewModel.errorMessage == "Enter the card number.")
-        #expect(stubPaymentFlowProvider.tokenizeCardInvocationCount == 0)
-        #expect(stubPaymentFlowProvider.createPaymentInvocationCount == 0)
+        XCTAssertEqual(cardFormViewModel.errorMessage, "Enter the card number.")
+        XCTAssertEqual(stubPaymentFlowProvider.tokenizeCardInvocationCount, 0)
+        XCTAssertEqual(stubPaymentFlowProvider.createPaymentInvocationCount, 0)
     }
 
     @MainActor
-    @Test
-    func submit_whenExpiryMonthIsInvalid_setsMonthValidationError() async {
+    func test_submit_whenExpiryMonthIsInvalid_setsMonthValidationError() async {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -162,13 +126,12 @@ extension CardFormViewModelTests {
         await cardFormViewModel.submit()
 
         // Then
-        #expect(cardFormViewModel.errorMessage == "Enter a valid expiry month.")
-        #expect(stubPaymentFlowProvider.tokenizeCardInvocationCount == 0)
+        XCTAssertEqual(cardFormViewModel.errorMessage, "Enter a valid expiry month.")
+        XCTAssertEqual(stubPaymentFlowProvider.tokenizeCardInvocationCount, 0)
     }
 
     @MainActor
-    @Test
-    func submit_whenAlreadyLoading_doesNothing() async {
+    func test_submit_whenAlreadyLoading_doesNothing() async {
         // Given
         let cardFormViewModel = CardFormViewModel(
             paymentFlowProvider: checkoutFlowServiceProviderSpy
@@ -182,13 +145,12 @@ extension CardFormViewModelTests {
         await cardFormViewModel.submit()
 
         // Then
-        #expect(stubPaymentFlowProvider.tokenizeCardInvocationCount == 0)
-        #expect(stubPaymentFlowProvider.createPaymentInvocationCount == 0)
+        XCTAssertEqual(stubPaymentFlowProvider.tokenizeCardInvocationCount, 0)
+        XCTAssertEqual(stubPaymentFlowProvider.createPaymentInvocationCount, 0)
     }
 
     @MainActor
-    @Test
-    func submit_whenTokenizationSucceeds_sendsSanitizedCardDetails_callsProvider_andInvokesCallback() async {
+    func test_submit_whenTokenizationSucceeds_sendsSanitizedCardDetails_callsProvider_andInvokesCallback() async {
         // Given
         let expectedPaymentToken = PaymentToken(value: "payment_token_123")
         let tokenizationCallbackSpy = TokenizationCallbackSpy()
@@ -215,22 +177,22 @@ extension CardFormViewModelTests {
             .checkoutFlow(.tokenizeCard)
         )
 
-        #expect(
-            stubPaymentFlowProvider.receivedCardDetails == CardDetails(
+        XCTAssertEqual(
+            stubPaymentFlowProvider.receivedCardDetails,
+            CardDetails(
                 cardNumber: "4111111111111111",
                 expirationMonth: "12",
                 expirationYear: "29",
                 securityCode: "123"
             )
         )
-        #expect(tokenizationCallbackSpy.recordedPaymentTokens == [expectedPaymentToken])
-        #expect(cardFormViewModel.isLoading == false)
-        #expect(cardFormViewModel.errorMessage == nil)
+        XCTAssertEqual(tokenizationCallbackSpy.recordedPaymentTokens, [expectedPaymentToken])
+        XCTAssertFalse(cardFormViewModel.isLoading)
+        XCTAssertNil(cardFormViewModel.errorMessage)
     }
 
     @MainActor
-    @Test
-    func submit_whenTokenizationFails_setsMappedErrorMessage() async {
+    func test_submit_whenTokenizationFails_setsMappedErrorMessage() async {
         // Given
         stubPaymentFlowProvider.tokenizeCardError = TestError.expectedFailure
 
@@ -256,12 +218,10 @@ extension CardFormViewModelTests {
             .checkoutFlow(.tokenizeCard)
         )
 
-        #expect(cardFormViewModel.isLoading == false)
-        #expect(cardFormViewModel.errorMessage == "Mapped tokenization error")
+        XCTAssertFalse(cardFormViewModel.isLoading)
+        XCTAssertEqual(cardFormViewModel.errorMessage, "Mapped tokenization error")
     }
 }
-
-// MARK: - Helpers
 
 extension CardFormViewModelTests {
 

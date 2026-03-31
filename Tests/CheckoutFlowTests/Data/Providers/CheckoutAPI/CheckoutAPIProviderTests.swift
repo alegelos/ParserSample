@@ -1,15 +1,17 @@
 import Foundation
-import Testing
+import XCTest
 import iOSCleanNetworkTesting
 
 @testable import CheckoutFlow
 
-struct CheckoutAPIProviderTests {
+final class CheckoutAPIProviderTests: XCTestCase {
 
-    let checkoutBaseURL: URL
-    let service: CheckoutFlowServiceProviderSpy
+    private var checkoutBaseURL: URL!
+    private var service: CheckoutFlowServiceProviderSpy!
 
-    init() throws {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+
         guard let checkoutBaseURL = URL(string: "https://api.sandbox.checkout.com") else {
             throw Errors.invalidBaseURL
         }
@@ -25,7 +27,13 @@ struct CheckoutAPIProviderTests {
         self.service = CheckoutFlowServiceProviderSpy(cardPaymentFlowProvider: checkoutAPIProvider)
     }
 
-    var sampleCardDetails: CardDetails {
+    override func tearDown() {
+        checkoutBaseURL = nil
+        service = nil
+        super.tearDown()
+    }
+
+    private var sampleCardDetails: CardDetails {
         CardDetails(
             cardNumber: "4242424242424242",
             expirationMonth: "10",
@@ -34,7 +42,7 @@ struct CheckoutAPIProviderTests {
         )
     }
 
-    func makeSampleCardPayment() throws -> CardPayment {
+    private func makeSampleCardPayment() throws -> CardPayment {
         guard let successURL = URL(string: "https://example.com/payments/success") else {
             throw Errors.invalidSuccessURL
         }
@@ -51,14 +59,8 @@ struct CheckoutAPIProviderTests {
             failureURL: failureURL
         )
     }
-}
 
-// MARK: - CheckoutAPISetup
-
-extension CheckoutAPIProviderTests {
-
-    @Test
-    func tokenSetup_buildsTokensEndpointWithPublicKeyAuthorization() throws {
+    func test_tokenSetup_buildsTokensEndpointWithPublicKeyAuthorization() throws {
         // Given
         let tokenSetup = CheckoutAPISetup.token(
             baseURL: checkoutBaseURL,
@@ -70,15 +72,14 @@ extension CheckoutAPIProviderTests {
         let urlRequest = try tokenSetup.request
 
         // Then
-        #expect(urlRequest.url?.absoluteString == "https://api.sandbox.checkout.com/tokens")
-        #expect(urlRequest.httpMethod == "POST")
-        #expect(urlRequest.value(forHTTPHeaderField: "Authorization") == "Bearer pk_sbox_example")
-        #expect(urlRequest.value(forHTTPHeaderField: "Accept") == "application/json")
-        #expect(urlRequest.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        XCTAssertEqual(urlRequest.url?.absoluteString, "https://api.sandbox.checkout.com/tokens")
+        XCTAssertEqual(urlRequest.httpMethod, "POST")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Authorization"), "Bearer pk_sbox_example")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Accept"), "application/json")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Content-Type"), "application/json")
     }
 
-    @Test
-    func paymentSetup_buildsPaymentsEndpointWithSecretKeyAuthorization() throws {
+    func test_paymentSetup_buildsPaymentsEndpointWithSecretKeyAuthorization() throws {
         // Given
         let cardPayment = try makeSampleCardPayment()
         let paymentSetup = CheckoutAPISetup.payment(
@@ -91,20 +92,14 @@ extension CheckoutAPIProviderTests {
         let urlRequest = try paymentSetup.request
 
         // Then
-        #expect(urlRequest.url?.absoluteString == "https://api.sandbox.checkout.com/payments")
-        #expect(urlRequest.httpMethod == "POST")
-        #expect(urlRequest.value(forHTTPHeaderField: "Authorization") == "Bearer sk_sbox_example")
-        #expect(urlRequest.value(forHTTPHeaderField: "Accept") == "application/json")
-        #expect(urlRequest.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        XCTAssertEqual(urlRequest.url?.absoluteString, "https://api.sandbox.checkout.com/payments")
+        XCTAssertEqual(urlRequest.httpMethod, "POST")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Authorization"), "Bearer sk_sbox_example")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Accept"), "application/json")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Content-Type"), "application/json")
     }
-}
 
-// MARK: - CheckoutAPIProvider
-
-extension CheckoutAPIProviderTests {
-
-    @Test
-    func tokenizeCard_returnsPaymentTokenFromFixture() async throws {
+    func test_tokenizeCard_returnsPaymentTokenFromFixture() async throws {
         // Given
         service.resetAllCounters()
         let expectedPaymentToken = PaymentToken(value: "tok_ubfj2q76miwundwlk72vxt2i7q")
@@ -113,18 +108,17 @@ extension CheckoutAPIProviderTests {
         let paymentToken = try await service.tokenizeCard(sampleCardDetails)
 
         // Then
-        #expect(paymentToken == expectedPaymentToken)
+        XCTAssertEqual(paymentToken, expectedPaymentToken)
         service.assertExpectedInvocations(
             .checkoutFlow(.tokenizeCard)
         )
     }
 
-    @Test
-    func createPayment_returnsPendingStatusAndRedirectURLFromFixture() async throws {
+    func test_createPayment_returnsPendingStatusAndRedirectURLFromFixture() async throws {
         // Given
         service.resetAllCounters()
         let cardPayment = try makeSampleCardPayment()
-        let expectedRedirectURL = try #require(
+        let expectedRedirectURL = try XCTUnwrap(
             URL(string: "https://api.checkout.com/3ds/pay_mbabizu24mvu3mela5njyhpit4")
         )
 
@@ -132,36 +126,31 @@ extension CheckoutAPIProviderTests {
         let paymentSession = try await service.createPayment(cardPayment)
 
         // Then
-        #expect(paymentSession.status == .pending)
-        #expect(paymentSession.redirectURL == expectedRedirectURL)
+        XCTAssertEqual(paymentSession.status, .pending)
+        XCTAssertEqual(paymentSession.redirectURL, expectedRedirectURL)
         service.assertExpectedInvocations(
             .checkoutFlow(.createPayment)
         )
     }
 
-    @Test
-    func tokenizeCard_throwsInjectedError() async throws {
+    func test_tokenizeCard_throwsInjectedError() async {
         // Given
         service.resetAllCounters()
         service.failingMethods(
             .checkoutFlow(.tokenizeCard)
         )
 
-        // When
+        // When / Then
         do {
             _ = try await service.tokenizeCard(sampleCardDetails)
-            Issue.record("Expected tokenizeCard to throw injected error")
-            return
-        } catch { }
-
-        // Then
-        service.assertExpectedInvocations(
-            .checkoutFlow(.tokenizeCard)
-        )
+            XCTFail("Expected tokenizeCard to throw injected error")
+        } catch {
+            service.assertExpectedInvocations(
+                .checkoutFlow(.tokenizeCard)
+            )
+        }
     }
 }
-
-// MARK: - Helping Structures
 
 extension CheckoutAPIProviderTests {
 
